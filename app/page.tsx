@@ -43,18 +43,33 @@ export default function CashflowApp() {
     console.log('Display mode:', window.matchMedia('(display-mode: standalone)').matches)
     console.log('Navigator standalone:', (window.navigator as any).standalone)
     
-    // Verificar si el navegador soporta PWA
-    const supportsPWA = 'serviceWorker' in navigator && 'PushManager' in window
+    // Verificar si el navegador soporta PWA y puede instalar
+    const supportsPWA = 'serviceWorker' in navigator
+    const canInstall = supportsPWA && !isStandalone
+    
+    // Detectar navegadores que soportan instalación automática
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)
+    const isEdge = /Edg/.test(navigator.userAgent)
+    const isFirefox = /Firefox/.test(navigator.userAgent)
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
+    
+    console.log('Navegador detectado:', { isChrome, isEdge, isFirefox, isSafari })
+    console.log('Soporta PWA:', supportsPWA)
+    console.log('Puede instalar:', canInstall)
     
     if (isStandalone) {
       console.log('App ya está instalada, ocultando botón')
       setShowInstallButton(false)
-    } else if (supportsPWA) {
-      console.log('Navegador soporta PWA, mostrando botón de instalación')
+    } else if (canInstall && (isChrome || isEdge || isFirefox)) {
+      console.log('Navegador soporta instalación automática, mostrando botón')
+      setShowInstallButton(true)
+    } else if (isSafari) {
+      // Safari tiene instalación manual pero la soporta
+      console.log('Safari detectado, mostrando botón para instalación manual')
       setShowInstallButton(true)
     } else {
-      console.log('Navegador no soporta PWA completamente, pero mostrando botón para instrucciones')
-      setShowInstallButton(true)
+      console.log('Navegador no soporta instalación PWA, ocultando botón')
+      setShowInstallButton(false)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -70,14 +85,14 @@ export default function CashflowApp() {
     try {
       if (deferredPrompt) {
         // Usar el prompt nativo si está disponible
-        console.log('Mostrando prompt de instalación nativo')
+        console.log('Activando instalación automática')
         deferredPrompt.prompt()
         const { outcome } = await deferredPrompt.userChoice
         
         console.log('Resultado de la instalación:', outcome)
         
         if (outcome === 'accepted') {
-          console.log('Usuario aceptó la instalación')
+          console.log('¡App instalada exitosamente!')
           setShowInstallButton(false)
         } else {
           console.log('Usuario canceló la instalación')
@@ -85,27 +100,29 @@ export default function CashflowApp() {
         
         setDeferredPrompt(null)
       } else {
-        // Fallback: mostrar instrucciones de instalación manual
-        console.log('Mostrando instrucciones de instalación manual')
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-        const isAndroid = /Android/.test(navigator.userAgent)
-        const isDesktop = !isIOS && !isAndroid
+        // Si no hay prompt nativo, intentar activar la instalación automáticamente
+        console.log('Intentando activar instalación automática')
         
-        let message = ''
-        
-        if (isIOS) {
-          message = 'Para instalar esta app en iOS:\n\n1. Toca el botón de compartir (📤) en la barra inferior\n2. Desplázate hacia abajo y selecciona "Agregar a pantalla de inicio"\n3. Toca "Agregar" para confirmar'
-        } else if (isAndroid) {
-          message = 'Para instalar esta app en Android:\n\n1. Toca el menú del navegador (⋮) en la esquina superior derecha\n2. Busca y selecciona "Instalar app" o "Agregar a pantalla de inicio"\n3. Confirma la instalación'
-        } else {
-          message = 'Para instalar esta app en tu computadora:\n\n1. Busca el ícono de instalación (⬇️) en la barra de direcciones\n2. O usa el menú del navegador (⋮) y selecciona "Instalar [nombre de la app]"\n3. Confirma la instalación'
+        // Registrar service worker si es necesario
+        if ('serviceWorker' in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.getRegistration()
+            if (!registration) {
+              await navigator.serviceWorker.register('/sw.js')
+            }
+          } catch (error) {
+            console.log('Error registrando service worker:', error)
+          }
         }
         
-        alert(message)
+        // Para navegadores que soportan instalación, el prompt debería aparecer automáticamente
+        // Si no aparece, ocultamos el botón silenciosamente
+        console.log('Instalación automática no disponible - ocultando botón')
+        setShowInstallButton(false)
       }
     } catch (error) {
       console.error('Error durante la instalación:', error)
-      alert('Hubo un error al intentar instalar la aplicación. Por favor, intenta nuevamente.')
+      setShowInstallButton(false)
     }
   }
 
