@@ -4,8 +4,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { 
   User, 
   signInWithPopup, 
-  signInWithRedirect,
-  getRedirectResult,
   GoogleAuthProvider, 
   signOut,
   onAuthStateChanged
@@ -26,21 +24,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar si hay resultado de redirect
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth)
-        if (result) {
-          console.log('Redirect login successful:', result.user)
-        }
-      } catch (error) {
-        console.error('Redirect login error:', error)
-      }
-    }
-
-    // Verificar redirect result una sola vez al cargar
-    handleRedirectResult()
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log('Auth state changed:', user?.email || 'No user')
       setUser(user)
@@ -55,23 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       const provider = new GoogleAuthProvider()
       
-      // Detectar si es dispositivo móvil
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      
-      console.log('Device is mobile:', isMobile)
-      console.log('User agent:', navigator.userAgent)
-      
-      if (isMobile) {
-        // En móviles, usar redirect simple
-        console.log('Starting redirect for mobile...')
-        await signInWithRedirect(auth, provider)
-        // No llamar setLoading(false) aquí porque la página se va a redirigir
-      } else {
-        // En desktop, usar popup
-        console.log('Using popup for desktop')
-        await signInWithPopup(auth, provider)
-        setLoading(false)
-      }
+      // Usar popup para todos los dispositivos
+      console.log('Using popup for all devices')
+      await signInWithPopup(auth, provider)
+      setLoading(false)
     } catch (error) {
       console.error('Error signing in with Google:', error)
       setLoading(false)
