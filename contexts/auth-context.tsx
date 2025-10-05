@@ -38,9 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Verificar redirect result una sola vez al cargar
     handleRedirectResult()
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Auth state changed:', user?.email || 'No user')
       setUser(user)
       setLoading(false)
     })
@@ -56,10 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Detectar si es dispositivo móvil
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       
+      console.log('Device is mobile:', isMobile)
+      console.log('User agent:', navigator.userAgent)
+      
       if (isMobile) {
         // En móviles, usar redirect simple
-        console.log('Using redirect for mobile')
+        console.log('Starting redirect for mobile...')
         await signInWithRedirect(auth, provider)
+        // No llamar setLoading(false) aquí porque la página se va a redirigir
       } else {
         // En desktop, usar popup
         console.log('Using popup for desktop')
