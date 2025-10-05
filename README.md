@@ -127,14 +127,33 @@ El formato de moneda se puede cambiar en `lib/utils/calculations.ts` en la funci
 ## Despliegue
 
 ### Vercel (Recomendado)
-1. Haz clic en el botón "Publish" en la interfaz de controlVentas
-2. Sigue las instrucciones para desplegar en Vercel
+
+#### Opción 1: Deploy desde GitHub (Recomendado)
+1. Conecta tu repositorio de GitHub a Vercel
+2. Vercel detectará automáticamente que es un proyecto Next.js
+3. El deploy se realizará automáticamente en cada push
+
+#### Opción 2: Deploy manual con Vercel CLI
+```bash
+# Instalar Vercel CLI
+npm i -g vercel
+
+# Hacer deploy
+vercel
+
+# Para deploy de producción
+vercel --prod
+```
 
 ### Otros Proveedores
 La app es compatible con cualquier proveedor que soporte Next.js:
-- Netlify
-- Cloudflare Pages
-- AWS Amplify
+- **Netlify**: Compatible con Next.js estático
+- **Cloudflare Pages**: Con Next.js adapter
+- **AWS Amplify**: Soporte nativo para Next.js
+- **Railway**: Deploy directo desde GitHub
+
+### Variables de Entorno
+No se requieren variables de entorno para el funcionamiento básico. La aplicación funciona completamente offline con localStorage.
 
 ## Soporte
 

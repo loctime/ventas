@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
@@ -7,17 +7,23 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Cashflow Tracker - Manage Your Business Finances",
-  description: "Track income and expenses for your small business with ease",
+  title: "Control de Ventas - Gestiona las Finanzas de tu Negocio",
+  description: "Registra ingresos y gastos de tu pequeño negocio de manera simple y rápida",
   generator: "controlVentas",
   manifest: "/manifest.json",
-  themeColor: "#10b981",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Cashflow Tracker",
+    title: "Control de Ventas",
   },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#10b981",
 }
 
 export default function RootLayout({

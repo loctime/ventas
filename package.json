@@ -1,12 +1,16 @@
 {
   "name": "control-ventas",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "Aplicación PWA para gestión de flujo de caja de pequeños negocios",
+  "keywords": ["pwa", "cashflow", "finanzas", "negocio", "ventas", "nextjs"],
+  "author": "loctime",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
