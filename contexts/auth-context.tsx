@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { 
   User, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider, 
   signOut,
   onAuthStateChanged
@@ -24,6 +26,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Verificar si hay resultado de redirect
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result) {
+          console.log('Redirect login successful:', result.user)
+        }
+      } catch (error) {
+        console.error('Redirect login error:', error)
+      }
+    }
+
+    handleRedirectResult()
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
       setLoading(false)
@@ -36,12 +52,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true)
       const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
+      
+      // Detectar si es dispositivo móvil
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      
+      if (isMobile) {
+        // Usar redirect en móviles
+        console.log('Using redirect for mobile device')
+        await signInWithRedirect(auth, provider)
+      } else {
+        // Usar popup en desktop
+        console.log('Using popup for desktop')
+        await signInWithPopup(auth, provider)
+      }
     } catch (error) {
       console.error('Error signing in with Google:', error)
-    } finally {
       setLoading(false)
     }
+    // No llamar setLoading(false) aquí para redirect, se manejará en useEffect
   }
 
   const logout = async () => {
