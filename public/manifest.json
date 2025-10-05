@@ -1,7 +1,7 @@
 {
-  "name": "Control de Ventas",
+  "name": "Control de Flujo de Caja",
   "short_name": "Control Ventas",
-  "description": "Gestiona las finanzas de tu negocio - Registra ingresos y gastos",
+  "description": "Gestiona las finanzas de tu negocio - Registra ingresos y gastos de manera simple",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -10,18 +10,33 @@
   "scope": "/",
   "lang": "es",
   "categories": ["business", "finance", "productivity"],
+  "id": "control-ventas-pwa",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     }
   ]
 }
