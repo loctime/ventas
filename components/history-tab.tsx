@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useCashflow } from "@/contexts/cashflow-context"
-import { calculateTotals, groupTransactionsByPeriod, formatCurrency } from "@/lib/utils/calculations"
+import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
+import { calculateTotals, groupTransactionsByPeriod, formatCurrency } from "@/lib/utils/firestore-calculations"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Banknote, CreditCard, ArrowRightLeft, TrendingUp, TrendingDown, Wallet } from "lucide-react"
-import type { PaymentMethod, TransactionType } from "@/lib/types"
+import type { Transaction } from "@/lib/firestore-service"
 
 const methodIcons: Record<string, any> = {
   cash: Banknote,
@@ -20,28 +20,27 @@ const methodLabels: Record<string, string> = {
   transfer: "Transferencia",
 }
 
-const getMethodInfo = (methodId: string, customMethods: any[]) => {
-  const customMethod = customMethods.find(m => m.id === methodId)
-  if (customMethod) {
-    return {
-      icon: customMethod.icon,
-      label: customMethod.name
-    }
-  }
+const getMethodInfo = (category: string) => {
   return {
-    icon: methodIcons[methodId] || Banknote,
-    label: methodLabels[methodId] || methodId
+    icon: methodIcons[category] || Banknote,
+    label: methodLabels[category] || category
   }
 }
 
 export function HistoryTab() {
-  const { transactions, customPaymentMethods } = useCashflow()
+  const { collections, payments, loading, error } = useFirestoreCashflow()
   const [period, setPeriod] = useState<"day" | "week" | "month" | "year">("month")
-  const [filter, setFilter] = useState<"all" | TransactionType>("all")
+  const [filter, setFilter] = useState<"all" | "collection" | "payment">("all")
+
+  const allTransactions = useMemo(() => {
+    const collectionsWithType = collections.map(t => ({ ...t, type: 'collection' as const }))
+    const paymentsWithType = payments.map(t => ({ ...t, type: 'payment' as const }))
+    return [...collectionsWithType, ...paymentsWithType].sort((a, b) => b.date.getTime() - a.date.getTime())
+  }, [collections, payments])
 
   const filteredTransactions = useMemo(() => 
-    filter === "all" ? transactions : transactions.filter((t) => t.type === filter),
-    [transactions, filter]
+    filter === "all" ? allTransactions : allTransactions.filter((t) => t.type === filter),
+    [allTransactions, filter]
   )
 
   const groupedTransactions = useMemo(() => 
@@ -144,7 +143,7 @@ export function HistoryTab() {
 
               <Card className="divide-y">
                 {transactions.map((transaction) => {
-                  const methodInfo = getMethodInfo(transaction.method, customPaymentMethods)
+                  const methodInfo = getMethodInfo(transaction.category)
                   const Icon = methodInfo.icon
                   const isCustomIcon = typeof Icon === "string"
                   

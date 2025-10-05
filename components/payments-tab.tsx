@@ -4,16 +4,16 @@ import { useState } from "react"
 import { PaymentMethodButton } from "./payment-method-button"
 import { TransactionModal } from "./transaction-modal"
 import { AddPaymentMethodModal } from "./add-payment-method-modal"
-import { useCashflow } from "@/contexts/cashflow-context"
-import type { PaymentMethod, CustomPaymentMethod } from "@/lib/types"
+import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
+import type { PaymentMethod } from "@/lib/firestore-service"
 
 export function PaymentsTab() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAddMethodModalOpen, setIsAddMethodModalOpen] = useState(false)
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | CustomPaymentMethod>("cash")
-  const { addTransaction, customPaymentMethods } = useCashflow()
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | string>("cash")
+  const { addPayment, paymentMethods, loading, error } = useFirestoreCashflow()
 
-  const handleMethodClick = (method: PaymentMethod | CustomPaymentMethod | "add") => {
+  const handleMethodClick = (method: PaymentMethod | string | "add") => {
     if (method === "add") {
       setIsAddMethodModalOpen(true)
       return
@@ -22,19 +22,28 @@ export function PaymentsTab() {
     setIsModalOpen(true)
   }
 
-  const handleSubmit = (
+  const handleSubmit = async (
     amount: number,
     note?: string,
     isRecurring?: boolean,
     frequency?: "weekly" | "monthly" | "yearly",
   ) => {
-    const methodId = typeof selectedMethod === "object" ? selectedMethod.id : selectedMethod
-    addTransaction("expense", methodId, amount, note, isRecurring, frequency)
+    const methodName = typeof selectedMethod === "object" ? selectedMethod.name : selectedMethod
+    await addPayment({
+      amount,
+      description: note || "",
+      category: methodName,
+      date: new Date()
+    })
   }
 
   // Crear array de métodos disponibles
-  const defaultMethods: PaymentMethod[] = ["cash", "card", "transfer"]
-  const allMethods = [...defaultMethods, ...customPaymentMethods]
+  const defaultMethods = [
+    { id: "cash", name: "Efectivo", type: "cash" as const, isDefault: true },
+    { id: "card", name: "Tarjeta", type: "card" as const, isDefault: true },
+    { id: "transfer", name: "Transferencia", type: "transfer" as const, isDefault: true }
+  ]
+  const allMethods = [...defaultMethods, ...paymentMethods]
   
   // Organizar en cuadrícula 2x2, llenando con botón "Agregar" si es necesario
   const displayMethods = [...allMethods]

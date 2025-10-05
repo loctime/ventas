@@ -4,13 +4,16 @@ import { useState, useEffect } from "react"
 import { CollectionsTab } from "@/components/collections-tab"
 import { PaymentsTab } from "@/components/payments-tab"
 import { HistoryTab } from "@/components/history-tab"
-import { CashflowProvider } from "@/contexts/cashflow-context"
-import { TrendingUp, TrendingDown, History, Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { FirestoreCashflowProvider } from "@/contexts/firestore-cashflow-context"
+import { LoginPage } from "@/components/login-page"
+import { UserHeader } from "@/components/user-header"
+import { useAuth } from "@/contexts/auth-context"
+import { TrendingUp, TrendingDown, History } from "lucide-react"
 
 type Tab = "collections" | "payments" | "history"
 
 export default function CashflowApp() {
+  const { user, loading } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>("collections")
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showInstallButton, setShowInstallButton] = useState(false)
@@ -18,6 +21,7 @@ export default function CashflowApp() {
   useEffect(() => {
     // Detectar si la app se puede instalar
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('beforeinstallprompt event fired')
       e.preventDefault()
       setDeferredPrompt(e)
       setShowInstallButton(true)
@@ -25,17 +29,29 @@ export default function CashflowApp() {
 
     // Detectar si la app ya está instalada
     const handleAppInstalled = () => {
+      console.log('App installed')
       setShowInstallButton(false)
       setDeferredPrompt(null)
     }
 
+    // Verificar si ya está instalada (modo standalone)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                        (window.navigator as any).standalone ||
+                        document.referrer.includes('android-app://')
+    
+    console.log('Is standalone:', isStandalone)
+    console.log('Display mode:', window.matchMedia('(display-mode: standalone)').matches)
+    console.log('Navigator standalone:', (window.navigator as any).standalone)
+    
+    if (isStandalone) {
+      setShowInstallButton(false)
+    } else {
+      // Para desarrollo, mostrar el botón siempre si no está en modo standalone
+      setShowInstallButton(true)
+    }
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     window.addEventListener('appinstalled', handleAppInstalled)
-
-    // Verificar si ya está instalada (modo standalone)
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
-      setShowInstallButton(false)
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -44,43 +60,53 @@ export default function CashflowApp() {
   }, [])
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return
-
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    
-    if (outcome === 'accepted') {
-      setShowInstallButton(false)
+    if (deferredPrompt) {
+      // Usar el prompt nativo si está disponible
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      
+      if (outcome === 'accepted') {
+        setShowInstallButton(false)
+      }
+      
+      setDeferredPrompt(null)
+    } else {
+      // Fallback: mostrar instrucciones de instalación manual
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      const isAndroid = /Android/.test(navigator.userAgent)
+      
+      if (isIOS) {
+        alert('Para instalar esta app en iOS:\n1. Toca el botón de compartir\n2. Selecciona "Agregar a pantalla de inicio"')
+      } else if (isAndroid) {
+        alert('Para instalar esta app en Android:\n1. Toca el menú del navegador (⋮)\n2. Selecciona "Instalar app" o "Agregar a pantalla de inicio"')
+      } else {
+        alert('Para instalar esta app:\n1. Busca el ícono de instalación en la barra de direcciones\n2. O usa el menú del navegador para "Instalar"')
+      }
     }
-    
-    setDeferredPrompt(null)
+  }
+
+  // Mostrar loading mientras se verifica la autenticación
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  // Mostrar login si no está autenticado
+  if (!user) {
+    return <LoginPage />
   }
 
   return (
-    <CashflowProvider>
+    <FirestoreCashflowProvider>
       <div className="min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="bg-card border-b sticky top-0 z-40">
-          <div className="container max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-balance">Control de Flujo de Caja</h1>
-                <p className="text-sm text-muted-foreground text-pretty">Registra los ingresos y gastos de tu negocio</p>
-              </div>
-              {showInstallButton && (
-                <Button
-                  onClick={handleInstallClick}
-                  size="sm"
-                  variant="outline"
-                  className="shrink-0"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Instalar App
-                </Button>
-              )}
-            </div>
-          </div>
-        </header>
+        {/* Header con usuario */}
+        <UserHeader 
+          showInstallButton={showInstallButton}
+          onInstallClick={handleInstallClick}
+        />
 
         {/* Main Content */}
         <main className="flex-1 container max-w-4xl mx-auto px-4 py-6">
@@ -132,6 +158,6 @@ export default function CashflowApp() {
           </div>
         </nav>
       </div>
-    </CashflowProvider>
+    </FirestoreCashflowProvider>
   )
 }

@@ -6,7 +6,7 @@ import { X, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useCashflow } from "@/contexts/cashflow-context"
+import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
 
 interface AddPaymentMethodModalProps {
   isOpen: boolean
@@ -17,18 +17,18 @@ export function AddPaymentMethodModal({ isOpen, onClose }: AddPaymentMethodModal
   const [name, setName] = useState("")
   const [icon, setIcon] = useState("💳")
   const [color, setColor] = useState("#10b981")
-  const { addCustomPaymentMethod } = useCashflow()
+  const { addPaymentMethod } = useFirestoreCashflow()
 
   if (!isOpen) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
 
-    addCustomPaymentMethod({
+    await addPaymentMethod({
       name: name.trim(),
-      icon,
-      color,
+      type: "other",
+      isDefault: false,
     })
 
     setName("")
