@@ -7,6 +7,7 @@ import { HistoryTab } from "@/components/history-tab"
 import { FirestoreCashflowProvider } from "@/contexts/firestore-cashflow-context"
 import { LoginPage } from "@/components/login-page"
 import { UserHeader } from "@/components/user-header"
+import { InstallModal } from "@/components/install-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { TrendingUp, TrendingDown, History } from "lucide-react"
 
@@ -17,11 +18,14 @@ export default function CashflowApp() {
   const [activeTab, setActiveTab] = useState<Tab>("collections")
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showInstallButton, setShowInstallButton] = useState(false)
+  const [showInstallModal, setShowInstallModal] = useState(false)
+  const [isInstalling, setIsInstalling] = useState(false)
+  const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
     // Detectar si la app se puede instalar
-    const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('beforeinstallprompt event fired')
+    const handleBeforeInstallPrompt = (e: any) => {
+      console.log('beforeinstallprompt event fired', e)
       e.preventDefault()
       setDeferredPrompt(e)
       setShowInstallButton(true)
@@ -32,6 +36,7 @@ export default function CashflowApp() {
       console.log('App installed')
       setShowInstallButton(false)
       setDeferredPrompt(null)
+      setIsInstalled(true)
     }
 
     // Verificar si ya está instalada (modo standalone)
@@ -60,16 +65,23 @@ export default function CashflowApp() {
     if (isStandalone) {
       console.log('App ya está instalada, ocultando botón')
       setShowInstallButton(false)
-    } else if (canInstall && (isChrome || isEdge || isFirefox)) {
-      console.log('Navegador soporta instalación automática, mostrando botón')
-      setShowInstallButton(true)
-    } else if (isSafari) {
-      // Safari tiene instalación manual pero la soporta
-      console.log('Safari detectado, mostrando botón para instalación manual')
+    } else if (canInstall) {
+      console.log('Navegador soporta instalación, mostrando botón')
       setShowInstallButton(true)
     } else {
       console.log('Navegador no soporta instalación PWA, ocultando botón')
       setShowInstallButton(false)
+    }
+
+    // Registrar service worker para mejorar la instalabilidad
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registrado:', registration)
+        })
+        .catch((error) => {
+          console.log('Error registrando Service Worker:', error)
+        })
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -81,11 +93,16 @@ export default function CashflowApp() {
     }
   }, [])
 
-  const handleInstallClick = async () => {
+  const handleInstallClick = () => {
+    setShowInstallModal(true)
+  }
+
+  const handleInstallConfirm = async () => {
+    setIsInstalling(true)
+    
     try {
       if (deferredPrompt) {
-        // Usar el prompt nativo si está disponible
-        console.log('Activando instalación automática')
+        console.log('Activando prompt de instalación nativo')
         deferredPrompt.prompt()
         const { outcome } = await deferredPrompt.userChoice
         
@@ -93,37 +110,51 @@ export default function CashflowApp() {
         
         if (outcome === 'accepted') {
           console.log('¡App instalada exitosamente!')
+          setIsInstalled(true)
           setShowInstallButton(false)
+          setShowInstallModal(false)
         } else {
           console.log('Usuario canceló la instalación')
+          setIsInstalling(false)
         }
         
         setDeferredPrompt(null)
       } else {
-        // Si no hay prompt nativo, intentar activar la instalación automáticamente
-        console.log('Intentando activar instalación automática')
+        // No hay prompt nativo disponible
+        console.log('No hay prompt nativo disponible')
+        setIsInstalling(false)
         
-        // Registrar service worker si es necesario
-        if ('serviceWorker' in navigator) {
-          try {
-            const registration = await navigator.serviceWorker.getRegistration()
-            if (!registration) {
-              await navigator.serviceWorker.register('/sw.js')
-            }
-          } catch (error) {
-            console.log('Error registrando service worker:', error)
-          }
+        // Mostrar instrucciones específicas según el navegador
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        const isAndroid = /Android/.test(navigator.userAgent)
+        const isChrome = /Chrome/.test(navigator.userAgent)
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
+        
+        let message = ''
+        
+        if (isIOS) {
+          message = 'Para instalar en iOS:\n1. Toca el botón de compartir (📤)\n2. Selecciona "Agregar a pantalla de inicio"\n3. Toca "Agregar"'
+        } else if (isAndroid && isChrome) {
+          message = 'Para instalar en Android:\n1. Toca el menú del navegador (⋮)\n2. Busca "Instalar app" o "Agregar a pantalla de inicio"\n3. Confirma la instalación'
+        } else if (isSafari) {
+          message = 'Para instalar en Safari:\n1. Ve al menú "Compartir"\n2. Selecciona "Agregar a pantalla de inicio"\n3. Confirma la instalación'
+        } else {
+          message = 'Para instalar esta app:\n1. Busca el ícono de instalación (⬇️) en la barra de direcciones\n2. O usa el menú del navegador para "Instalar"'
         }
         
-        // Para navegadores que soportan instalación, el prompt debería aparecer automáticamente
-        // Si no aparece, ocultamos el botón silenciosamente
-        console.log('Instalación automática no disponible - ocultando botón')
-        setShowInstallButton(false)
+        alert(message)
+        setShowInstallModal(false)
       }
     } catch (error) {
       console.error('Error durante la instalación:', error)
-      setShowInstallButton(false)
+      alert('Hubo un error durante la instalación. Por favor, intenta nuevamente.')
+      setIsInstalling(false)
     }
+  }
+
+  const handleInstallModalClose = () => {
+    setShowInstallModal(false)
+    setIsInstalling(false)
   }
 
   // Mostrar loading mientras se verifica la autenticación
@@ -198,6 +229,15 @@ export default function CashflowApp() {
             </div>
           </div>
         </nav>
+
+        {/* Modal de Instalación */}
+        <InstallModal
+          isOpen={showInstallModal}
+          onClose={handleInstallModalClose}
+          onConfirm={handleInstallConfirm}
+          isInstalling={isInstalling}
+          isInstalled={isInstalled}
+        />
       </div>
     </FirestoreCashflowProvider>
   )
