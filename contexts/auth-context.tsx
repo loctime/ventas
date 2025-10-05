@@ -57,54 +57,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       
       if (isMobile) {
-        // En móviles, abrir página de auth en nueva pestaña
-        console.log('Using new tab for mobile device')
-        
-        const authUrl = `${window.location.origin}/auth`
-        const newWindow = window.open(authUrl, 'auth', 'width=500,height=600,scrollbars=yes,resizable=yes')
-        
-        if (!newWindow) {
-          throw new Error('No se pudo abrir la ventana de autenticación. Por favor, permite ventanas emergentes.')
-        }
-        
-        // Escuchar mensajes de la ventana de auth
-        const handleMessage = (event: MessageEvent) => {
-          if (event.origin !== window.location.origin) return
-          
-          if (event.data.type === 'AUTH_SUCCESS') {
-            console.log('Auth successful in new tab')
-            window.removeEventListener('message', handleMessage)
-            setLoading(false)
-          } else if (event.data.type === 'AUTH_ERROR') {
-            console.error('Auth error:', event.data.error)
-            window.removeEventListener('message', handleMessage)
-            setLoading(false)
-          }
-        }
-        
-        window.addEventListener('message', handleMessage)
-        
-        // Monitorear si la ventana se cerró manualmente
-        const checkClosed = setInterval(() => {
-          if (newWindow.closed) {
-            clearInterval(checkClosed)
-            window.removeEventListener('message', handleMessage)
-            setLoading(false)
-          }
-        }, 1000)
-        
-        // Timeout después de 5 minutos
-        setTimeout(() => {
-          clearInterval(checkClosed)
-          window.removeEventListener('message', handleMessage)
-          if (!newWindow.closed) {
-            newWindow.close()
-          }
-          setLoading(false)
-        }, 300000)
-        
+        // En móviles, usar redirect simple
+        console.log('Using redirect for mobile')
+        await signInWithRedirect(auth, provider)
       } else {
-        // Usar popup en desktop
+        // En desktop, usar popup
         console.log('Using popup for desktop')
         await signInWithPopup(auth, provider)
         setLoading(false)
