@@ -57,19 +57,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       
       if (isMobile) {
-        // Usar redirect en móviles
-        console.log('Using redirect for mobile device')
-        await signInWithRedirect(auth, provider)
+        // En móviles, abrir página de auth en nueva pestaña
+        console.log('Using new tab for mobile device')
+        
+        const authUrl = `${window.location.origin}/auth`
+        const newWindow = window.open(authUrl, 'auth', 'width=500,height=600,scrollbars=yes,resizable=yes')
+        
+        if (!newWindow) {
+          throw new Error('No se pudo abrir la ventana de autenticación. Por favor, permite ventanas emergentes.')
+        }
+        
+        // Escuchar mensajes de la ventana de auth
+        const handleMessage = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return
+          
+          if (event.data.type === 'AUTH_SUCCESS') {
+            console.log('Auth successful in new tab')
+            window.removeEventListener('message', handleMessage)
+            setLoading(false)
+          } else if (event.data.type === 'AUTH_ERROR') {
+            console.error('Auth error:', event.data.error)
+            window.removeEventListener('message', handleMessage)
+            setLoading(false)
+          }
+        }
+        
+        window.addEventListener('message', handleMessage)
+        
+        // Monitorear si la ventana se cerró manualmente
+        const checkClosed = setInterval(() => {
+          if (newWindow.closed) {
+            clearInterval(checkClosed)
+            window.removeEventListener('message', handleMessage)
+            setLoading(false)
+          }
+        }, 1000)
+        
+        // Timeout después de 5 minutos
+        setTimeout(() => {
+          clearInterval(checkClosed)
+          window.removeEventListener('message', handleMessage)
+          if (!newWindow.closed) {
+            newWindow.close()
+          }
+          setLoading(false)
+        }, 300000)
+        
       } else {
         // Usar popup en desktop
         console.log('Using popup for desktop')
         await signInWithPopup(auth, provider)
+        setLoading(false)
       }
     } catch (error) {
       console.error('Error signing in with Google:', error)
       setLoading(false)
     }
-    // No llamar setLoading(false) aquí para redirect, se manejará en useEffect
   }
 
   const logout = async () => {
