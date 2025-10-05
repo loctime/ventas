@@ -1,10 +1,11 @@
-// Service Worker para PWA
+// Service Worker para PWA - Optimizado para móvil
 const CACHE_NAME = 'control-ventas-v1'
 const urlsToCache = [
   '/',
   '/manifest.json',
   '/icon-192.jpg',
-  '/icon-512.jpg'
+  '/icon-512.jpg',
+  '/sw.js'
 ]
 
 // Instalar service worker
@@ -20,8 +21,11 @@ self.addEventListener('install', (event) => {
         console.log('Service Worker: Instalación completada')
         return self.skipWaiting()
       })
+      .catch((error) => {
+        console.log('Service Worker: Error durante instalación', error)
+      })
   )
-})
+)
 
 // Activar service worker
 self.addEventListener('activate', (event) => {
