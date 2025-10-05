@@ -1,16 +1,60 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CollectionsTab } from "@/components/collections-tab"
 import { PaymentsTab } from "@/components/payments-tab"
 import { HistoryTab } from "@/components/history-tab"
 import { CashflowProvider } from "@/contexts/cashflow-context"
-import { TrendingUp, TrendingDown, History } from "lucide-react"
+import { TrendingUp, TrendingDown, History, Download } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 type Tab = "collections" | "payments" | "history"
 
 export default function CashflowApp() {
   const [activeTab, setActiveTab] = useState<Tab>("collections")
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [showInstallButton, setShowInstallButton] = useState(false)
+
+  useEffect(() => {
+    // Detectar si la app se puede instalar
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowInstallButton(true)
+    }
+
+    // Detectar si la app ya está instalada
+    const handleAppInstalled = () => {
+      setShowInstallButton(false)
+      setDeferredPrompt(null)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    // Verificar si ya está instalada (modo standalone)
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setShowInstallButton(false)
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return
+
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    
+    if (outcome === 'accepted') {
+      setShowInstallButton(false)
+    }
+    
+    setDeferredPrompt(null)
+  }
 
   return (
     <CashflowProvider>
@@ -18,8 +62,23 @@ export default function CashflowApp() {
         {/* Header */}
         <header className="bg-card border-b sticky top-0 z-40">
           <div className="container max-w-4xl mx-auto px-4 py-4">
-            <h1 className="text-2xl font-bold text-balance">Control de Flujo de Caja</h1>
-            <p className="text-sm text-muted-foreground text-pretty">Registra los ingresos y gastos de tu negocio</p>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-balance">Control de Flujo de Caja</h1>
+                <p className="text-sm text-muted-foreground text-pretty">Registra los ingresos y gastos de tu negocio</p>
+              </div>
+              {showInstallButton && (
+                <Button
+                  onClick={handleInstallClick}
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Instalar App
+                </Button>
+              )}
+            </div>
           </div>
         </header>
 
