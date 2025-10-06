@@ -13,6 +13,10 @@
   "id": "control-ventas-pwa",
   "dir": "ltr",
   "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone"],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "icons": [
     {
       "src": "/icon-192.jpg",
