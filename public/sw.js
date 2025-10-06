@@ -1,54 +1,46 @@
-// Service Worker para PWA - Optimizado para móvil
-const CACHE_NAME = 'control-ventas-v1'
+const CACHE_NAME = "control-ventas-v1.0.0"
+const STATIC_CACHE = "control-ventas-static-v1.0.0"
+const DYNAMIC_CACHE = "control-ventas-dynamic-v1.0.0"
+
 const urlsToCache = [
-  '/',
-  '/manifest.json',
-  '/icon-192.jpg',
-  '/icon-512.jpg',
-  '/sw.js'
+  "/",
+  "/manifest.json",
+  "/icon-192.jpg",
+  "/icon-512.jpg"
 ]
 
-// Instalar service worker
-self.addEventListener('install', (event) => {
-  console.log('Service Worker: Instalando...')
+// Instalar Service Worker
+self.addEventListener("install", (event) => {
+  console.log("[SW] Installing...")
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Service Worker: Cacheando archivos')
+        console.log("[SW] Caching static assets")
         return cache.addAll(urlsToCache)
       })
-      .then(() => {
-        console.log('Service Worker: Instalación completada')
-        return self.skipWaiting()
-      })
-      .catch((error) => {
-        console.log('Service Worker: Error durante instalación', error)
-      })
+      .then(() => self.skipWaiting())
   )
-)
+})
 
-// Activar service worker
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activando...')
+// Activar Service Worker
+self.addEventListener("activate", (event) => {
+  console.log("[SW] Activating...")
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Eliminando cache antiguo:', cacheName)
+          if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+            console.log("[SW] Deleting old cache:", cacheName)
             return caches.delete(cacheName)
           }
         })
       )
-    }).then(() => {
-      console.log('Service Worker: Activación completada')
-      return self.clients.claim()
-    })
+    }).then(() => self.clients.claim())
   )
 })
 
 // Interceptar requests
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -57,21 +49,21 @@ self.addEventListener('fetch', (event) => {
           return response
         }
         
-        // Si no está en cache, hacer fetch y cachear
+        // Si no está en cache, hacer fetch
         return fetch(event.request).then((response) => {
-          // Verificar que la respuesta sea válida
+          // Verificar si es una respuesta válida
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response
           }
-          
+
           // Clonar la respuesta
           const responseToCache = response.clone()
-          
-          caches.open(CACHE_NAME)
+
+          caches.open(DYNAMIC_CACHE)
             .then((cache) => {
               cache.put(event.request, responseToCache)
             })
-          
+
           return response
         })
       })
