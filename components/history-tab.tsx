@@ -38,10 +38,12 @@ export function HistoryTab() {
     return [...collectionsWithType, ...paymentsWithType].sort((a, b) => b.date.getTime() - a.date.getTime())
   }, [collections, payments])
 
-  const filteredTransactions = useMemo(() => 
-    filter === "all" ? allTransactions : allTransactions.filter((t) => t.type === filter),
-    [allTransactions, filter]
-  )
+  const filteredTransactions = useMemo(() => {
+    if (filter === "all") return allTransactions
+    if (filter === "collection") return allTransactions.filter((t) => t.type === "collection")
+    if (filter === "payment") return allTransactions.filter((t) => t.type === "payment")
+    return allTransactions
+  }, [allTransactions, filter])
 
   const groupedTransactions = useMemo(() => 
     groupTransactionsByPeriod(filteredTransactions, period),
@@ -61,8 +63,8 @@ export function HistoryTab() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 space-y-2">
+      <div className="flex flex-col lg:flex-row gap-4">
+        <Card className="p-4 space-y-2 flex-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <TrendingUp className="h-4 w-4" style={{ color: "var(--income)" }} />
             Total Ingresos
@@ -72,7 +74,7 @@ export function HistoryTab() {
           </div>
         </Card>
 
-        <Card className="p-4 space-y-2">
+        <Card className="p-4 space-y-2 flex-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <TrendingDown className="h-4 w-4" style={{ color: "var(--expense)" }} />
             Total Gastos
@@ -82,7 +84,7 @@ export function HistoryTab() {
           </div>
         </Card>
 
-        <Card className="p-4 space-y-2">
+        <Card className="p-4 space-y-2 flex-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wallet className="h-4 w-4" />
             Balance
@@ -118,8 +120,8 @@ export function HistoryTab() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las Transacciones</SelectItem>
-            <SelectItem value="income">Solo Ingresos</SelectItem>
-            <SelectItem value="expense">Solo Gastos</SelectItem>
+            <SelectItem value="collection">Solo Cobros</SelectItem>
+            <SelectItem value="payment">Solo Pagos</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -152,9 +154,9 @@ export function HistoryTab() {
                       <div
                         className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{
-                          backgroundColor: transaction.type === "income" ? "var(--income)" : "var(--expense)",
+                          backgroundColor: transaction.type === "collection" ? "var(--income)" : "var(--expense)",
                           color:
-                            transaction.type === "income" ? "var(--income-foreground)" : "var(--expense-foreground)",
+                            transaction.type === "collection" ? "var(--income-foreground)" : "var(--expense-foreground)",
                         }}
                       >
                         {isCustomIcon ? (
@@ -177,10 +179,10 @@ export function HistoryTab() {
                       <div
                         className="text-lg font-bold flex-shrink-0"
                         style={{
-                          color: transaction.type === "income" ? "var(--income)" : "var(--expense)",
+                          color: transaction.type === "collection" ? "var(--income)" : "var(--expense)",
                         }}
                       >
-                        {transaction.type === "income" ? "+" : "-"}
+                        {transaction.type === "collection" ? "+" : "-"}
                         {formatCurrency(transaction.amount)}
                       </div>
                     </div>
