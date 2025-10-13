@@ -40,7 +40,7 @@ export function UserHeader({ showInstallButton, onInstallClick }: UserHeaderProp
   const isDevelopment = process.env.NODE_ENV === 'development'
 
   return (
-    <header className="bg-card border-b sticky top-0 z-40">
+    <header className="glass-header sticky top-0 z-40">
       <div className="container max-w-4xl mx-auto px-4 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">

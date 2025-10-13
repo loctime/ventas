@@ -166,15 +166,15 @@ export function DailyClosureTab() {
   if (todayClosure?.status === 'closed') {
     return (
       <div className="space-y-4">
-        <Card className="p-6">
+        <Card className="modern-card p-6 scale-hover">
           <div className="text-center space-y-4">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-            <h2 className="text-2xl font-bold">Día Cerrado</h2>
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto floating-icon" />
+            <h2 className="text-2xl font-bold big-number">Día Cerrado</h2>
             <p className="text-muted-foreground">
               El día ya fue finalizado. Los cambios no se pueden realizar.
             </p>
             <div className="pt-4">
-              <div className="text-4xl font-bold text-green-600">
+              <div className="text-4xl font-bold success-gradient">
                 ${finalBalance.toLocaleString('es-AR')}
               </div>
               <p className="text-sm text-muted-foreground">Balance del día</p>
@@ -191,7 +191,7 @@ export function DailyClosureTab() {
       <div>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Cierre del Día</h2>
+            <h2 className="text-2xl font-bold big-number">Cierre del Día</h2>
             <p className="text-muted-foreground capitalize">{today}</p>
           </div>
           
@@ -213,9 +213,10 @@ export function DailyClosureTab() {
       </div>
 
       {/* Ingresos del día */}
-      <Card className="p-6">
+      <Card className="modern-card p-6 scale-hover">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          💰 Ingresos del Día
+          <span className="floating-icon">💰</span>
+          Ingresos del Día
         </h3>
         
         <div className="space-y-4">
@@ -226,7 +227,7 @@ export function DailyClosureTab() {
               value={cashCounted || ""}
               onChange={(e) => setCashCounted(parseFloat(e.target.value) || 0)}
               placeholder="0"
-              className="text-lg"
+              className="text-lg modern-input"
             />
             {registeredCash > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -242,7 +243,7 @@ export function DailyClosureTab() {
               value={cardCounted || ""}
               onChange={(e) => setCardCounted(parseFloat(e.target.value) || 0)}
               placeholder="0"
-              className="text-lg"
+              className="text-lg modern-input"
             />
             {registeredCard > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -258,7 +259,7 @@ export function DailyClosureTab() {
               value={transferCounted || ""}
               onChange={(e) => setTransferCounted(parseFloat(e.target.value) || 0)}
               placeholder="0"
-              className="text-lg"
+              className="text-lg modern-input"
             />
             {registeredTransfer > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -270,16 +271,17 @@ export function DailyClosureTab() {
           <div className="pt-2 border-t">
             <div className="flex justify-between text-lg font-semibold">
               <span>Total Ingresos:</span>
-              <span>${totalCounted.toLocaleString('es-AR')}</span>
+              <span className="success-gradient">${totalCounted.toLocaleString('es-AR')}</span>
             </div>
           </div>
         </div>
       </Card>
 
       {/* Gastos del día */}
-      <Card className="p-6">
+      <Card className="modern-card p-6 scale-hover">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          📝 Gastos del Día
+          <span className="floating-icon">📝</span>
+          Gastos del Día
         </h3>
 
         {/* Agregar nuevo gasto */}
@@ -290,6 +292,7 @@ export function DailyClosureTab() {
               value={newExpenseDesc}
               onChange={(e) => setNewExpenseDesc(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddExpense()}
+              className="modern-input"
             />
             <Input
               type="number"
@@ -297,9 +300,9 @@ export function DailyClosureTab() {
               value={newExpenseAmount}
               onChange={(e) => setNewExpenseAmount(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddExpense()}
-              className="w-32"
+              className="w-32 modern-input"
             />
-            <Button onClick={handleAddExpense} size="icon">
+            <Button onClick={handleAddExpense} size="icon" className="modern-button">
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -340,16 +343,17 @@ export function DailyClosureTab() {
         <div className="pt-2 border-t">
           <div className="flex justify-between text-lg font-semibold">
             <span>Total Gastos:</span>
-            <span className="text-red-600">${totalExpenses.toLocaleString('es-AR')}</span>
+            <span className="danger-gradient">${totalExpenses.toLocaleString('es-AR')}</span>
           </div>
         </div>
       </Card>
 
-      {/* Comparación con ventas registradas (opcional) */}
+        {/* Comparación con ventas registradas (opcional) */}
       {registeredTotal > 0 && (
-        <Card className="p-6">
+        <Card className="modern-card p-6 scale-hover">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            📊 Verificación
+            <span className="floating-icon">📊</span>
+            Verificación
           </h3>
 
           <div className="space-y-2">
@@ -389,19 +393,19 @@ export function DailyClosureTab() {
       )}
 
       {/* Resumen final */}
-      <Card className="p-6 bg-primary/5">
+      <Card className="modern-card p-6 bg-gradient-to-br from-blue-50 to-purple-50 scale-hover">
         <div className="space-y-3">
           <div className="flex justify-between text-lg">
             <span>Total Ingresos:</span>
-            <span className="font-semibold">${totalCounted.toLocaleString('es-AR')}</span>
+            <span className="font-semibold success-gradient">${totalCounted.toLocaleString('es-AR')}</span>
           </div>
           <div className="flex justify-between text-lg">
             <span>Total Gastos:</span>
-            <span className="font-semibold text-red-600">-${totalExpenses.toLocaleString('es-AR')}</span>
+            <span className="font-semibold danger-gradient">-${totalExpenses.toLocaleString('es-AR')}</span>
           </div>
           <div className="flex justify-between text-2xl font-bold pt-3 border-t-2">
             <span>Balance del Día:</span>
-            <span className="text-green-600">${finalBalance.toLocaleString('es-AR')}</span>
+            <span className="success-gradient">${finalBalance.toLocaleString('es-AR')}</span>
           </div>
         </div>
       </Card>
@@ -410,7 +414,7 @@ export function DailyClosureTab() {
       <Button
         onClick={handleFinalize}
         disabled={saving || loading || totalCounted === 0}
-        className="w-full"
+        className="w-full modern-button text-lg py-6"
         size="lg"
       >
         {saving ? "Finalizando..." : "✓ Finalizar Día"}

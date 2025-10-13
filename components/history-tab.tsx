@@ -156,23 +156,24 @@ export function HistoryTab() {
         <Button 
           variant="ghost" 
           onClick={() => setSelectedClosure(null)}
-          className="mb-2"
+          className="mb-2 modern-button"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver
         </Button>
 
         <div>
-          <h2 className="text-2xl font-bold capitalize">{formatDate(selectedClosure.date)}</h2>
+          <h2 className="text-2xl font-bold capitalize big-number">{formatDate(selectedClosure.date)}</h2>
           <p className="text-muted-foreground">
             {selectedClosure.status === 'closed' ? 'Día cerrado' : 'Día abierto'}
           </p>
         </div>
 
         {/* Ingresos detallados */}
-        <Card className="pt-3 px-6 pb-6">
+        <Card className="modern-card pt-3 px-6 pb-6 scale-hover">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            💰 Ingresos del Día
+            <span className="floating-icon">💰</span>
+            Ingresos del Día
           </h3>
           <div className="space-y-3">
             <div className="flex justify-between">
@@ -189,15 +190,16 @@ export function HistoryTab() {
             </div>
             <div className="flex justify-between pt-2 border-t font-semibold">
               <span>Total Ingresos:</span>
-              <span className="text-green-600">${selectedClosure.totalCounted.toLocaleString('es-AR')}</span>
+              <span className="success-gradient">${selectedClosure.totalCounted.toLocaleString('es-AR')}</span>
             </div>
           </div>
         </Card>
 
         {/* Gastos */}
-        <Card className="p-6">
+        <Card className="modern-card p-6 scale-hover">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            📝 Gastos del Día
+            <span className="floating-icon">📝</span>
+            Gastos del Día
           </h3>
           {selectedClosure.expenses.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-2">
@@ -215,7 +217,7 @@ export function HistoryTab() {
               ))}
               <div className="flex justify-between pt-2 border-t font-semibold">
                 <span>Total Gastos:</span>
-                <span className="text-red-600">${selectedClosure.totalExpenses.toLocaleString('es-AR')}</span>
+                <span className="danger-gradient">${selectedClosure.totalExpenses.toLocaleString('es-AR')}</span>
               </div>
             </div>
           )}
@@ -223,9 +225,10 @@ export function HistoryTab() {
 
         {/* Verificación */}
         {selectedClosure.workModeTotal > 0 && (
-          <Card className="p-6">
+          <Card className="modern-card p-6 scale-hover">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              📊 Verificación
+              <span className="floating-icon">📊</span>
+              Verificación
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -263,10 +266,10 @@ export function HistoryTab() {
         )}
 
         {/* Balance final */}
-        <Card className="p-6 bg-primary/5">
+        <Card className="modern-card p-6 bg-gradient-to-br from-green-50 to-blue-50 scale-hover">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-bold">Balance del Día</h3>
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-3xl font-bold success-gradient">
               ${selectedClosure.finalBalance.toLocaleString('es-AR')}
             </div>
           </div>
@@ -279,19 +282,19 @@ export function HistoryTab() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold">Historial de Cierres</h2>
+        <h2 className="text-2xl font-bold big-number">Historial de Cierres</h2>
         <p className="text-muted-foreground">Organizado por mes, semana y día</p>
       </div>
 
       {loading && (
-        <Card className="p-8 text-center">
+        <Card className="modern-card p-8 text-center scale-hover">
           <p className="text-muted-foreground">Cargando...</p>
         </Card>
       )}
 
       {!loading && dailyClosures.length === 0 && (
-        <Card className="p-8 text-center">
-          <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <Card className="modern-card p-8 text-center scale-hover">
+          <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4 floating-icon" />
           <p className="text-muted-foreground">No hay cierres registrados aún</p>
           <p className="text-sm text-muted-foreground mt-2">
             Los cierres diarios aparecerán aquí organizados por mes y semana
@@ -303,7 +306,7 @@ export function HistoryTab() {
         <div className="space-y-4">
           {groupedData.map((month) => (
             <Collapsible key={month.monthKey} defaultOpen={groupedData.indexOf(month) === 0}>
-              <Card className="overflow-hidden">
+              <Card className="modern-card overflow-hidden scale-hover">
                 <CollapsibleTrigger className="w-full">
                   <div className="p-4 hover:bg-accent transition-colors">
                     <div className="flex items-center justify-between">
@@ -347,9 +350,9 @@ export function HistoryTab() {
                   <div className="border-t bg-muted/30 p-4 space-y-3">
                     {month.weeks.map((week) => (
                       <Collapsible key={`${month.monthKey}-week-${week.weekNumber}`}>
-                        <Card className="overflow-hidden">
+                        <Card className="modern-card overflow-hidden scale-hover">
                           <CollapsibleTrigger className="w-full">
-                            <div className="p-3 hover:bg-accent transition-colors">
+                            <div className="p-3 hover:bg-white/50 transition-colors">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <CalendarDays className="h-4 w-4 text-primary" />
@@ -379,7 +382,7 @@ export function HistoryTab() {
                               {week.days.map((day) => (
                                 <Card 
                                   key={day.closure.id}
-                                  className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                                  className="modern-card p-3 cursor-pointer hover:bg-white/50 transition-colors scale-hover"
                                   onClick={() => setSelectedClosure(day.closure)}
                                 >
                                   <div className="flex items-center justify-between">

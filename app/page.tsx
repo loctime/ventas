@@ -53,16 +53,16 @@ export default function CashflowApp() {
           {activeTab === "history" && <HistoryTab />}
         </main>
 
-        {/* Bottom Navigation - Super Simple */}
-        <nav className="bg-card border-t sticky bottom-0 z-40">
+        {/* Bottom Navigation - Modern Glass Design */}
+        <nav className="glass-nav sticky bottom-0 z-40">
           <div className="container max-w-4xl mx-auto px-4">
             <div className="grid grid-cols-2 gap-3 py-3">
               <button
                 onClick={() => setActiveTab("closure")}
-                className={`flex flex-col items-center gap-2 py-4 px-4 rounded-lg transition-colors ${
+                className={`flex flex-col items-center gap-2 py-4 px-4 rounded-2xl smooth-transition ${
                   activeTab === "closure"
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "modern-button text-white shadow-lg scale-hover"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/50 scale-hover"
                 }`}
               >
                 <DollarSign className="h-7 w-7" />
@@ -71,10 +71,10 @@ export default function CashflowApp() {
 
               <button
                 onClick={() => setActiveTab("history")}
-                className={`flex flex-col items-center gap-2 py-4 px-4 rounded-lg transition-colors ${
+                className={`flex flex-col items-center gap-2 py-4 px-4 rounded-2xl smooth-transition ${
                   activeTab === "history"
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "modern-button text-white shadow-lg scale-hover"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/50 scale-hover"
                 }`}
               >
                 <History className="h-7 w-7" />
