@@ -28,3 +28,41 @@ export interface RecurringTemplate {
   frequency: RecurringFrequency
   nextDue: number
 }
+
+// Tipos para el sistema de cierre diario
+export interface DailyExpense {
+  id: string
+  description: string
+  amount: number
+}
+
+export interface DailyClosure {
+  id: string
+  date: string // Formato: YYYY-MM-DD
+  userId: string
+  
+  // Conteo real de caja
+  cashCounted: number
+  cardCounted: number
+  transferCounted: number
+  totalCounted: number
+  
+  // Gastos del día
+  expenses: DailyExpense[]
+  totalExpenses: number
+  
+  // Comparación con Work Mode
+  workModeTransactionIds: string[] // IDs de transacciones del día
+  workModeTotal: number
+  difference: number // counted - workMode
+  
+  // Justificación de diferencias
+  note?: string
+  
+  // Balance final
+  finalBalance: number // totalCounted - totalExpenses
+  
+  status: "open" | "closed"
+  createdAt: number
+  closedAt?: number
+}

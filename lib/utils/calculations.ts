@@ -52,8 +52,5 @@ export function groupTransactionsByPeriod(transactions: Transaction[], period: "
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  }).format(amount)
+  return "$" + new Intl.NumberFormat("es-ES").format(amount)
 }

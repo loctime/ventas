@@ -1,210 +1,253 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
-import { calculateTotals, groupTransactionsByPeriod, formatCurrency } from "@/lib/utils/firestore-calculations"
+import { formatCurrency } from "@/lib/utils/firestore-calculations"
 import { Card } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Banknote, CreditCard, ArrowRightLeft, TrendingUp, TrendingDown, Wallet } from "lucide-react"
-import type { Transaction } from "@/lib/firestore-service"
-
-const methodIcons: Record<string, any> = {
-  cash: Banknote,
-  card: CreditCard,
-  transfer: ArrowRightLeft,
-}
-
-const methodLabels: Record<string, string> = {
-  cash: "Efectivo",
-  card: "Tarjeta",
-  transfer: "Transferencia",
-}
-
-const getMethodInfo = (category: string) => {
-  return {
-    icon: methodIcons[category] || Banknote,
-    label: methodLabels[category] || category
-  }
-}
+import { Button } from "@/components/ui/button"
+import { 
+  CalendarDays, 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  AlertCircle,
+  CheckCircle,
+  ChevronRight,
+  ArrowLeft
+} from "lucide-react"
+import type { DailyClosure } from "@/lib/types"
 
 export function HistoryTab() {
-  const { collections, payments, loading, error } = useFirestoreCashflow()
-  const [period, setPeriod] = useState<"day" | "week" | "month" | "year">("month")
-  const [filter, setFilter] = useState<"all" | "collection" | "payment">("all")
+  const { dailyClosures, loading } = useFirestoreCashflow()
+  const [selectedClosure, setSelectedClosure] = useState<DailyClosure | null>(null)
 
-  const allTransactions = useMemo(() => {
-    const collectionsWithType = collections.map(t => ({ ...t, type: 'collection' as const }))
-    const paymentsWithType = payments.map(t => ({ ...t, type: 'payment' as const }))
-    return [...collectionsWithType, ...paymentsWithType].sort((a, b) => b.date.getTime() - a.date.getTime())
-  }, [collections, payments])
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('es-ES', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  }
 
-  const filteredTransactions = useMemo(() => {
-    if (filter === "all") return allTransactions
-    if (filter === "collection") return allTransactions.filter((t) => t.type === "collection")
-    if (filter === "payment") return allTransactions.filter((t) => t.type === "payment")
-    return allTransactions
-  }, [allTransactions, filter])
+  const formatShortDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('es-ES', { 
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
 
-  const groupedTransactions = useMemo(() => 
-    groupTransactionsByPeriod(filteredTransactions, period),
-    [filteredTransactions, period]
-  )
-  
-  const totals = useMemo(() => 
-    calculateTotals(filteredTransactions),
-    [filteredTransactions]
-  )
+  if (selectedClosure) {
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <Button 
+          variant="ghost" 
+          onClick={() => setSelectedClosure(null)}
+          className="mb-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-balance mb-2">Historial de Transacciones</h2>
-        <p className="text-muted-foreground text-pretty">Visualiza y analiza tu flujo de caja a lo largo del tiempo</p>
-      </div>
+        <div>
+          <h2 className="text-2xl font-bold capitalize">{formatDate(selectedClosure.date)}</h2>
+          <p className="text-muted-foreground">
+            {selectedClosure.status === 'closed' ? 'Día cerrado' : 'Día abierto'}
+          </p>
+        </div>
 
-      {/* Summary Cards */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        <Card className="p-4 space-y-2 flex-1">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <TrendingUp className="h-4 w-4" style={{ color: "var(--income)" }} />
-            Total Ingresos
-          </div>
-          <div className="text-2xl font-bold" style={{ color: "var(--income)" }}>
-            {formatCurrency(totals.income)}
-          </div>
-        </Card>
-
-        <Card className="p-4 space-y-2 flex-1">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <TrendingDown className="h-4 w-4" style={{ color: "var(--expense)" }} />
-            Total Gastos
-          </div>
-          <div className="text-2xl font-bold" style={{ color: "var(--expense)" }}>
-            {formatCurrency(totals.expenses)}
-          </div>
-        </Card>
-
-        <Card className="p-4 space-y-2 flex-1">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Wallet className="h-4 w-4" />
-            Balance
-          </div>
-          <div
-            className="text-2xl font-bold"
-            style={{
-              color: totals.balance >= 0 ? "var(--income)" : "var(--expense)",
-            }}
-          >
-            {formatCurrency(totals.balance)}
+        {/* Ingresos detallados */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            💰 Ingresos del Día
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">💵 Efectivo:</span>
+              <span className="font-semibold">${selectedClosure.cashCounted.toLocaleString('es-AR')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">💳 Tarjeta:</span>
+              <span className="font-semibold">${selectedClosure.cardCounted.toLocaleString('es-AR')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">🏦 Transferencias:</span>
+              <span className="font-semibold">${selectedClosure.transferCounted.toLocaleString('es-AR')}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t font-semibold">
+              <span>Total Ingresos:</span>
+              <span className="text-green-600">${selectedClosure.totalCounted.toLocaleString('es-AR')}</span>
+            </div>
           </div>
         </Card>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="day">Por Día</SelectItem>
-            <SelectItem value="week">Por Semana</SelectItem>
-            <SelectItem value="month">Por Mes</SelectItem>
-            <SelectItem value="year">Por Año</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Gastos */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            📝 Gastos del Día
+          </h3>
+          {selectedClosure.expenses.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-2">
+              No se registraron gastos
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {selectedClosure.expenses.map((expense) => (
+                <div key={expense.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <span>{expense.description}</span>
+                  <span className="font-semibold text-red-600">
+                    -${expense.amount.toLocaleString('es-AR')}
+                  </span>
+                </div>
+              ))}
+              <div className="flex justify-between pt-2 border-t font-semibold">
+                <span>Total Gastos:</span>
+                <span className="text-red-600">${selectedClosure.totalExpenses.toLocaleString('es-AR')}</span>
+              </div>
+            </div>
+          )}
+        </Card>
 
-        <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las Transacciones</SelectItem>
-            <SelectItem value="collection">Solo Cobros</SelectItem>
-            <SelectItem value="payment">Solo Pagos</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Transactions List */}
-      <div className="space-y-6">
-        {groupedTransactions.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-muted-foreground">No hay transacciones aún</p>
-            <p className="text-sm text-muted-foreground mt-2">Comienza agregando cobros o pagos</p>
+        {/* Comparación con Work Mode */}
+        {selectedClosure.workModeTotal > 0 && (
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              📊 Comparación con Work Mode
+            </h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Registrado en Work Mode:</span>
+                <span className="font-semibold">${selectedClosure.workModeTotal.toLocaleString('es-AR')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Conteo Real:</span>
+                <span className="font-semibold">${selectedClosure.totalCounted.toLocaleString('es-AR')}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="font-semibold">Diferencia:</span>
+                <div className="flex items-center gap-2">
+                  {selectedClosure.difference !== 0 && (
+                    <AlertCircle className={`h-4 w-4 ${selectedClosure.difference < 0 ? 'text-red-500' : 'text-yellow-500'}`} />
+                  )}
+                  <span className={`font-bold ${
+                    selectedClosure.difference < 0 ? 'text-red-600' : 
+                    selectedClosure.difference > 0 ? 'text-yellow-600' : 
+                    'text-green-600'
+                  }`}>
+                    {selectedClosure.difference >= 0 ? '+' : ''}${selectedClosure.difference.toLocaleString('es-AR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {selectedClosure.note && (
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Nota:</p>
+                <p className="text-sm text-muted-foreground">{selectedClosure.note}</p>
+              </div>
+            )}
           </Card>
-        ) : (
-          groupedTransactions.map(({ period, transactions, totals }) => (
-            <div key={period} className="space-y-3">
+        )}
+
+        {/* Balance final */}
+        <Card className="p-6 bg-primary/5">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold">Balance del Día</h3>
+            <div className="text-3xl font-bold text-green-600">
+              ${selectedClosure.finalBalance.toLocaleString('es-AR')}
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  // Vista principal del historial
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-2xl font-bold">Historial de Cierres</h2>
+        <p className="text-muted-foreground">Revisa los cierres diarios anteriores</p>
+      </div>
+
+      {loading && (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">Cargando...</p>
+        </Card>
+      )}
+
+      {!loading && dailyClosures.length === 0 && (
+        <Card className="p-8 text-center">
+          <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">No hay cierres registrados aún</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Los cierres diarios aparecerán aquí
+          </p>
+        </Card>
+      )}
+
+      {!loading && dailyClosures.length > 0 && (
+        <div className="space-y-3">
+          {dailyClosures.map((closure) => (
+            <Card 
+              key={closure.id}
+              className="p-4 cursor-pointer hover:bg-accent transition-colors"
+              onClick={() => setSelectedClosure(closure)}
+            >
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg">{period}</h3>
-                <div className="text-sm text-muted-foreground">
-                  {transactions.length} transacción{transactions.length !== 1 ? "es" : ""}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold capitalize">{formatShortDate(closure.date)}</span>
+                    {closure.status === 'closed' ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>${closure.totalCounted.toLocaleString('es-AR')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <TrendingDown className="h-3 w-3" />
+                      <span>${closure.totalExpenses.toLocaleString('es-AR')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">Balance</div>
+                    <div className="text-lg font-bold text-green-600">
+                      ${closure.finalBalance.toLocaleString('es-AR')}
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
 
-              <Card className="divide-y">
-                {transactions.map((transaction) => {
-                  const methodInfo = getMethodInfo(transaction.category)
-                  const Icon = methodInfo.icon
-                  const isCustomIcon = typeof Icon === "string"
-                  
-                  return (
-                    <div key={transaction.id} className="p-4 flex items-center gap-4">
-                      <div
-                        className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{
-                          backgroundColor: transaction.type === "collection" ? "var(--income)" : "var(--expense)",
-                          color:
-                            transaction.type === "collection" ? "var(--income-foreground)" : "var(--expense-foreground)",
-                        }}
-                      >
-                        {isCustomIcon ? (
-                          <span className="text-lg">{Icon}</span>
-                        ) : (
-                          <Icon className="h-5 w-5" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{methodInfo.label}</div>
-                        {transaction.note && (
-                          <div className="text-sm text-muted-foreground truncate">{transaction.note}</div>
-                        )}
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(transaction.date).toLocaleString("es-ES")}
-                        </div>
-                      </div>
-
-                      <div
-                        className="text-lg font-bold flex-shrink-0"
-                        style={{
-                          color: transaction.type === "collection" ? "var(--income)" : "var(--expense)",
-                        }}
-                      >
-                        {transaction.type === "collection" ? "+" : "-"}
-                        {formatCurrency(transaction.amount)}
-                      </div>
-                    </div>
-                  )
-                })}
-              </Card>
-
-              <div className="flex justify-between text-sm px-2">
-                <span className="text-muted-foreground">Total del Período:</span>
-                <span
-                  className="font-semibold"
-                  style={{
-                    color: totals.balance >= 0 ? "var(--income)" : "var(--expense)",
-                  }}
-                >
-                  {formatCurrency(totals.balance)}
-                </span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+              {closure.difference !== 0 && (
+                <div className="mt-2 pt-2 border-t flex items-center gap-2 text-xs">
+                  <AlertCircle className={`h-3 w-3 ${closure.difference < 0 ? 'text-red-500' : 'text-yellow-500'}`} />
+                  <span className="text-muted-foreground">
+                    Diferencia con Work Mode: 
+                    <span className={`font-semibold ml-1 ${closure.difference < 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+                      {closure.difference >= 0 ? '+' : ''}${closure.difference.toLocaleString('es-AR')}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

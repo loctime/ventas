@@ -1,21 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { CollectionsTab } from "@/components/collections-tab"
-import { PaymentsTab } from "@/components/payments-tab"
+import { DailyClosureTab } from "@/components/daily-closure-tab"
+import { WorkModeWrapper } from "@/components/work-mode-wrapper"
 import { HistoryTab } from "@/components/history-tab"
 import { FirestoreCashflowProvider } from "@/contexts/firestore-cashflow-context"
 import { LoginPage } from "@/components/login-page"
 import { UserHeader } from "@/components/user-header"
 import { useAuth } from "@/contexts/auth-context"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
-import { TrendingUp, TrendingDown, History } from "lucide-react"
+import { DollarSign, Wrench, History } from "lucide-react"
 
-type Tab = "collections" | "payments" | "history"
+type Tab = "closure" | "workmode" | "history"
 
 export default function CashflowApp() {
   const { user, loading } = useAuth()
-  const [activeTab, setActiveTab] = useState<Tab>("collections")
+  const [activeTab, setActiveTab] = useState<Tab>("closure")
   const { isInstallable, isInstalled, installPWA } = usePWAInstall()
 
   const handleInstallClick = async () => {
@@ -50,8 +50,8 @@ export default function CashflowApp() {
 
         {/* Main Content */}
         <main className="flex-1 container max-w-4xl mx-auto px-4 py-6">
-          {activeTab === "collections" && <CollectionsTab />}
-          {activeTab === "payments" && <PaymentsTab />}
+          {activeTab === "closure" && <DailyClosureTab />}
+          {activeTab === "workmode" && <WorkModeWrapper />}
           {activeTab === "history" && <HistoryTab />}
         </main>
 
@@ -60,27 +60,27 @@ export default function CashflowApp() {
           <div className="container max-w-4xl mx-auto px-4">
             <div className="grid grid-cols-3 gap-2 py-2">
               <button
-                onClick={() => setActiveTab("collections")}
+                onClick={() => setActiveTab("closure")}
                 className={`flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-colors ${
-                  activeTab === "collections"
+                  activeTab === "closure"
                     ? "bg-secondary text-secondary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <TrendingUp className="h-6 w-6" />
-                <span className="text-xs font-medium">Cobros</span>
+                <DollarSign className="h-6 w-6" />
+                <span className="text-xs font-medium">Cierre</span>
               </button>
 
               <button
-                onClick={() => setActiveTab("payments")}
+                onClick={() => setActiveTab("workmode")}
                 className={`flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-colors ${
-                  activeTab === "payments"
+                  activeTab === "workmode"
                     ? "bg-secondary text-secondary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <TrendingDown className="h-6 w-6" />
-                <span className="text-xs font-medium">Pagos</span>
+                <Wrench className="h-6 w-6" />
+                <span className="text-xs font-medium">Work Mode</span>
               </button>
 
               <button

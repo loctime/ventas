@@ -4,6 +4,7 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { useAuth } from "./auth-context"
 import { FirestoreService, Transaction, PaymentMethod } from "@/lib/firestore-service"
+import type { DailyClosure, DailyExpense } from "@/lib/types"
 
 interface CashflowContextType {
   collections: Transaction[]
@@ -20,6 +21,18 @@ interface CashflowContextType {
   addPaymentMethod: (paymentMethod: Omit<PaymentMethod, 'id'>) => Promise<void>
   updatePaymentMethod: (id: string, paymentMethod: Partial<Omit<PaymentMethod, 'id'>>) => Promise<void>
   deletePaymentMethod: (id: string) => Promise<void>
+  // Daily Closure
+  todayClosure: DailyClosure | null
+  todayTransactions: Transaction[]
+  dailyClosures: DailyClosure[]
+  saveTodayClosure: (data: {
+    cashCounted: number
+    cardCounted: number
+    transferCounted: number
+    expenses: DailyExpense[]
+    note?: string
+  }) => Promise<void>
+  closeDailyBalance: () => Promise<void>
 }
 
 const CashflowContext = createContext<CashflowContextType | undefined>(undefined)
@@ -32,6 +45,11 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [firestoreService, setFirestoreService] = useState<FirestoreService | null>(null)
+  
+  // Daily closure states
+  const [todayClosure, setTodayClosure] = useState<DailyClosure | null>(null)
+  const [todayTransactions, setTodayTransactions] = useState<Transaction[]>([])
+  const [dailyClosures, setDailyClosures] = useState<DailyClosure[]>([])
 
   // Initialize Firestore service when user is available
   useEffect(() => {
@@ -68,10 +86,28 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
       setLoading(false)
     })
 
+    // Subscribe to today's closure
+    const today = new Date().toISOString().split('T')[0]
+    const unsubscribeTodayClosure = firestoreService.subscribeToDailyClosure(today, (data) => {
+      setTodayClosure(data)
+    })
+
+    // Subscribe to all daily closures
+    const unsubscribeDailyClosures = firestoreService.subscribeToDailyClosures((data) => {
+      setDailyClosures(data)
+    })
+
+    // Get today's transactions
+    firestoreService.getTransactionsForDate(today).then((data) => {
+      setTodayTransactions(data)
+    })
+
     return () => {
       unsubscribeCollections()
       unsubscribePayments()
       unsubscribePaymentMethods()
+      unsubscribeTodayClosure()
+      unsubscribeDailyClosures()
     }
   }, [firestoreService])
 
@@ -177,6 +213,70 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     }
   }, [firestoreService])
 
+  // Daily closure methods
+  const saveTodayClosure = useCallback(async (data: {
+    cashCounted: number
+    cardCounted: number
+    transferCounted: number
+    expenses: DailyExpense[]
+    note?: string
+  }) => {
+    if (!firestoreService || !user) return
+    
+    try {
+      setError(null)
+      const today = new Date().toISOString().split('T')[0]
+      
+      // Calculate totals
+      const totalCounted = data.cashCounted + data.cardCounted + data.transferCounted
+      const totalExpenses = data.expenses.reduce((sum, e) => sum + e.amount, 0)
+      
+      // Calculate work mode totals
+      const workModeTotal = todayTransactions
+        .filter(t => t.type === 'collection')
+        .reduce((sum, t) => sum + t.amount, 0)
+      
+      const difference = totalCounted - workModeTotal
+      const finalBalance = totalCounted - totalExpenses
+
+      const closure: Omit<DailyClosure, 'userId'> = {
+        id: `${user.uid}_${today}`,
+        date: today,
+        cashCounted: data.cashCounted,
+        cardCounted: data.cardCounted,
+        transferCounted: data.transferCounted,
+        totalCounted,
+        expenses: data.expenses,
+        totalExpenses,
+        workModeTransactionIds: todayTransactions.map(t => t.id || ''),
+        workModeTotal,
+        difference,
+        note: data.note,
+        finalBalance,
+        status: 'open',
+        createdAt: Date.now()
+      }
+
+      await firestoreService.saveDailyClosure(closure)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar cierre')
+      throw err
+    }
+  }, [firestoreService, user, todayTransactions])
+
+  const closeDailyBalance = useCallback(async () => {
+    if (!firestoreService) return
+    
+    try {
+      setError(null)
+      const today = new Date().toISOString().split('T')[0]
+      await firestoreService.closeDailyBalance(today)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cerrar el día')
+      throw err
+    }
+  }, [firestoreService])
+
   const value = {
     collections,
     payments,
@@ -192,6 +292,12 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     addPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
+    // Daily closure
+    todayClosure,
+    todayTransactions,
+    dailyClosures,
+    saveTodayClosure,
+    closeDailyBalance,
   }
 
   return (
