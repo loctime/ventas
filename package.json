@@ -13,11 +13,16 @@
   ],
   "author": "loctime",
   "scripts": {
+    "prebuild": "node scripts/update-sw-version.js",
     "build": "next build",
+    "postbuild": "node scripts/restore-sw-template.js",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "update-sw": "node scripts/update-sw-version.js",
+    "restore-template": "node scripts/restore-sw-template.js",
+    "test-sw-update": "node scripts/test-sw-update.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
