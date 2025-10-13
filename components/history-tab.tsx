@@ -50,7 +50,9 @@ export function HistoryTab() {
   const [selectedClosure, setSelectedClosure] = useState<DailyClosure | null>(null)
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
+    // Parsear la fecha correctamente para evitar problemas de zona horaria
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month es 0-indexado
     return date.toLocaleDateString('es-ES', { 
       weekday: 'long', 
       year: 'numeric', 
@@ -60,12 +62,24 @@ export function HistoryTab() {
   }
 
   const formatShortDate = (dateStr: string) => {
-    const date = new Date(dateStr)
+    // Parsear la fecha correctamente para evitar problemas de zona horaria
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month es 0-indexado
     return date.toLocaleDateString('es-ES', { 
       day: '2-digit',
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDayAndDate = (dateStr: string) => {
+    // Parsear la fecha correctamente para evitar problemas de zona horaria
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month es 0-indexado
+    const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' })
+    const dayFormatted = date.getDate().toString().padStart(2, '0')
+    const monthFormatted = (date.getMonth() + 1).toString().padStart(2, '0')
+    return `${dayName} ${dayFormatted}/${monthFormatted}`
   }
 
   // Obtener el número de semana del mes (1-4 o 5)
@@ -359,7 +373,10 @@ export function HistoryTab() {
                                   <div className="text-left">
                                     <h4 className="font-semibold">{week.weekLabel}</h4>
                                     <p className="text-xs text-muted-foreground">
-                                      {week.days.length} {week.days.length === 1 ? 'día' : 'días'}
+                                      {week.days.length === 1 
+                                        ? formatDayAndDate(week.days[0].date)
+                                        : `${week.days.length} días`
+                                      }
                                     </p>
                                   </div>
                                 </div>

@@ -49,6 +49,9 @@ interface CashflowContextType {
     calendarDay: string
     message: string
   }
+  forceUpdateActiveWorkingDay: () => void
+  forceStartNewDay: () => Promise<void>
+  cancelDayClosure: (closureDate: string) => Promise<void>
 }
 
 const CashflowContext = createContext<CashflowContextType | undefined>(undefined)
@@ -115,6 +118,9 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
       }
     }
 
+    // Verificar inmediatamente al montar el componente
+    checkDayChange()
+    
     const interval = setInterval(checkDayChange, 60000) // Cada minuto
     return () => clearInterval(interval)
   }, [activeWorkingDay, businessDayCutoff])
@@ -368,6 +374,77 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     return getClosureDateSuggestions(businessDayCutoff)
   }, [businessDayCutoff])
 
+  // Función para forzar actualización del día activo
+  const forceUpdateActiveWorkingDay = useCallback(() => {
+    const newDay = getBusinessDay(businessDayCutoff)
+    setActiveWorkingDay(newDay)
+  }, [businessDayCutoff])
+
+  // Función para forzar inicio de nuevo día (reabrir el día)
+  const forceStartNewDay = useCallback(async () => {
+    try {
+      setError(null)
+      // Obtener el día comercial actual
+      const newDay = getBusinessDay(businessDayCutoff)
+      
+      // Actualizar el día activo
+      setActiveWorkingDay(newDay)
+      
+      // Limpiar el cierre del día actual si existe
+      setTodayClosure(null)
+      
+      console.log('✅ Nuevo día iniciado:', newDay)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al iniciar nuevo día')
+      throw err
+    }
+  }, [businessDayCutoff])
+
+  // Función para cancelar cierre de día
+  const cancelDayClosure = useCallback(async (closureDate: string) => {
+    if (!firestoreService) return
+    
+    try {
+      setError(null)
+      
+      // Verificar si la función existe
+      if (typeof firestoreService.deleteDailyClosure !== 'function') {
+        throw new Error('Función deleteDailyClosure no disponible. Por favor, recarga la página.')
+      }
+      
+      // Obtener los datos del cierre antes de eliminarlo para restaurarlos
+      const closureToRestore = todayClosure
+      
+      // Eliminar el cierre del día de Firestore
+      await firestoreService.deleteDailyClosure(closureDate)
+      
+      // Actualizar el estado local
+      setDailyClosures(prev => prev.filter(c => c.date !== closureDate))
+      
+      // Restaurar el cierre como "abierto" para permitir edición
+      if (closureToRestore) {
+        const restoredClosure = {
+          ...closureToRestore,
+          status: 'open' as const,
+          closedAt: undefined
+        }
+        setTodayClosure(restoredClosure)
+      }
+      
+      // Forzar recálculo del día activo para asegurar que se muestre el formulario de cierre
+      const newDay = getBusinessDay(businessDayCutoff)
+      setActiveWorkingDay(newDay)
+      
+      console.log('✅ Cierre cancelado para:', closureDate)
+      console.log('✅ Datos restaurados para edición')
+      console.log('✅ Día activo actualizado a:', newDay)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cancelar cierre'
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    }
+  }, [firestoreService, businessDayCutoff, todayClosure])
+
   const value = {
     collections,
     payments,
@@ -396,6 +473,9 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     isExtendedHours: isExtendedHours(businessDayCutoff),
     updateBusinessDayCutoff,
     getClosureSuggestions,
+    forceUpdateActiveWorkingDay,
+    forceStartNewDay,
+    cancelDayClosure,
   }
 
   return (

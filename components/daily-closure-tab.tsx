@@ -9,7 +9,7 @@ import { Plus, X, AlertCircle, CheckCircle, Save } from "lucide-react"
 import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
 import type { DailyExpense } from "@/lib/types"
 import { ClosureDateSelectorDialog } from "./closure-date-selector-dialog"
-import { formatDateLong } from "@/lib/utils/business-day"
+import { formatDateLong, getBusinessDay } from "@/lib/utils/business-day"
 
 export function DailyClosureTab() {
   const { 
@@ -21,6 +21,9 @@ export function DailyClosureTab() {
     activeWorkingDay,
     isExtendedHours,
     getClosureSuggestions,
+    businessDayCutoff,
+    forceStartNewDay,
+    cancelDayClosure,
   } = useFirestoreCashflow()
 
   const [cashCounted, setCashCounted] = useState(0)
@@ -40,6 +43,9 @@ export function DailyClosureTab() {
   // Estados para selector de fecha
   const [showDateSelector, setShowDateSelector] = useState(false)
   const [pendingClosure, setPendingClosure] = useState<any>(null)
+  
+  // Estado para mostrar mensaje de datos restaurados
+  const [showRestoredMessage, setShowRestoredMessage] = useState(false)
 
   // Calcular totales de transacciones registradas
   const registeredCollections = todayTransactions.filter(t => t.type === 'collection')
@@ -75,6 +81,18 @@ export function DailyClosureTab() {
       setExpenses(todayClosure.expenses)
       setNote(todayClosure.note || "")
       setLastSaved(new Date(todayClosure.createdAt || Date.now()))
+      
+      console.log('📝 Datos del cierre cargados para edición:', {
+        cashCounted: todayClosure.cashCounted,
+        cardCounted: todayClosure.cardCounted,
+        transferCounted: todayClosure.transferCounted,
+        expenses: todayClosure.expenses.length,
+        note: todayClosure.note
+      })
+      
+      // Mostrar mensaje de datos restaurados por 5 segundos
+      setShowRestoredMessage(true)
+      setTimeout(() => setShowRestoredMessage(false), 5000)
     }
   }, [todayClosure])
 
@@ -194,7 +212,10 @@ export function DailyClosureTab() {
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('es-ES', { 
+    // Parsear la fecha correctamente para evitar problemas de zona horaria
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month es 0-indexado
+    return date.toLocaleDateString('es-ES', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -203,20 +224,143 @@ export function DailyClosureTab() {
   }
 
   if (todayClosure?.status === 'closed') {
+    // Calcular cuándo comenzará el próximo día
+    const getNextDayInfo = () => {
+      const now = new Date()
+      const currentHour = now.getHours()
+      const cutoffHour = businessDayCutoff || 4
+      
+      let nextDayStart: Date
+      let nextDayMessage: string
+      
+      if (currentHour < cutoffHour) {
+        // Estamos en horario extendido, el próximo día comenzará a las hora de corte
+        nextDayStart = new Date(now)
+        nextDayStart.setHours(cutoffHour, 0, 0, 0)
+        nextDayMessage = `El próximo día comenzará a las ${cutoffHour.toString().padStart(2, '0')}:00`
+      } else {
+        // Estamos en horario normal, el próximo día comenzará mañana a las hora de corte
+        nextDayStart = new Date(now)
+        nextDayStart.setDate(nextDayStart.getDate() + 1)
+        nextDayStart.setHours(cutoffHour, 0, 0, 0)
+        nextDayMessage = `El próximo día comenzará mañana a las ${cutoffHour.toString().padStart(2, '0')}:00`
+      }
+      
+      return {
+        nextDayStart,
+        message: nextDayMessage,
+        timeUntilNextDay: nextDayStart.getTime() - now.getTime()
+      }
+    }
+    
+    const nextDayInfo = getNextDayInfo()
+    const closedDate = todayClosure.date
+    
+    // Función para forzar inicio de nuevo día
+    const handleForceStart = async () => {
+      if (confirm('¿Estás seguro de iniciar un nuevo día? Esto cambiará al día comercial actual.')) {
+        try {
+          await forceStartNewDay()
+          // Los cambios se aplicarán automáticamente via el contexto
+          console.log('✅ Nuevo día iniciado exitosamente')
+        } catch (error) {
+          console.error('Error al forzar inicio:', error)
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+          alert(`Error al iniciar nuevo día: ${errorMessage}`)
+        }
+      }
+    }
+    
+    // Función para cancelar cierre
+    const handleCancelClosure = async () => {
+      if (confirm('⚠️ ADVERTENCIA: Esto eliminará el cierre del día del historial y permitirá editarlo nuevamente. ¿Estás seguro?')) {
+        try {
+          await cancelDayClosure(closedDate)
+          // Los cambios se aplicarán automáticamente via el contexto
+          console.log('✅ Cierre cancelado exitosamente')
+        } catch (error) {
+          console.error('Error al cancelar cierre:', error)
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+          alert(`Error al cancelar cierre: ${errorMessage}`)
+        }
+      }
+    }
+    
     return (
       <div className="space-y-4">
         <Card className="modern-card p-6 scale-hover">
           <div className="text-center space-y-4">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto floating-icon" />
             <h2 className="text-2xl font-bold big-number">Día Cerrado</h2>
-            <p className="text-muted-foreground">
-              El día ya fue finalizado. Los cambios no se pueden realizar.
-            </p>
+            
+            {/* Información del día cerrado */}
+            <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <p className="text-green-900 dark:text-green-100 font-medium">
+                Día cerrado: {formatDate(closedDate)}
+              </p>
+              <p className="text-green-700 dark:text-green-300 text-sm mt-1">
+                {formatDateLong(closedDate)}
+              </p>
+            </div>
+            
+            {/* Balance del día */}
             <div className="pt-4">
               <div className="text-4xl font-bold success-gradient">
                 ${finalBalance.toLocaleString('es-AR')}
               </div>
               <p className="text-sm text-muted-foreground">Balance del día</p>
+            </div>
+            
+            {/* Información del próximo día */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-blue-900 dark:text-blue-100 font-medium">
+                Próximo día comercial
+              </p>
+              <p className="text-blue-700 dark:text-blue-300 text-sm mt-1">
+                {nextDayInfo.message}
+              </p>
+              <p className="text-blue-600 dark:text-blue-400 text-xs mt-2">
+                {nextDayInfo.nextDayStart.toLocaleDateString('es-ES', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long' 
+                })} a las {nextDayInfo.nextDayStart.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </p>
+            </div>
+            
+            {/* Botones de acción */}
+            <div className="flex gap-3 justify-center pt-4">
+              <Button 
+                onClick={handleForceStart}
+                variant="outline"
+                className="modern-button"
+              >
+                🚀 Forzar Inicio
+              </Button>
+              <Button 
+                onClick={handleCancelClosure}
+                variant="destructive"
+                className="modern-button"
+              >
+                ⚠️ Cancelar Cierre
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground mt-4">
+              Los cambios al día cerrado requieren confirmación adicional
+            </p>
+            
+            {/* Mensaje informativo sobre las acciones */}
+            <div className="text-xs text-center space-y-1 mt-2">
+              <p className="text-blue-600 dark:text-blue-400">
+                💡 <strong>Forzar Inicio:</strong> Inicia un nuevo día comercial
+              </p>
+              <p className="text-orange-600 dark:text-orange-400">
+                ⚠️ <strong>Cancelar Cierre:</strong> Restaura los datos para editarlos nuevamente
+              </p>
             </div>
           </div>
         </Card>
@@ -228,9 +372,21 @@ export function DailyClosureTab() {
     <div className="space-y-4">
       {/* Header */}
       <div>
+        {/* Mensaje de datos restaurados */}
+        {showRestoredMessage && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                ✅ Datos restaurados - Puedes editar el cierre nuevamente
+              </span>
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold big-number">Cierre del Día</h2>
+            <h2 className="text-2xl font-bold big-number">Cierre del Día </h2>
             <p className="text-muted-foreground capitalize">
               {activeWorkingDay ? formatDate(activeWorkingDay) : 'Cargando...'}
             </p>

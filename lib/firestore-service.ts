@@ -270,6 +270,12 @@ export class FirestoreService {
     } as DailyClosure
   }
 
+  // Eliminar cierre de un día específico
+  async deleteDailyClosure(dateStr: string): Promise<void> {
+    const docRef = doc(db, 'dailyClosures', `${this.userId}_${dateStr}`)
+    await deleteDoc(docRef)
+  }
+
   // Obtener todos los cierres (para historial)
   async getAllDailyClosures(): Promise<DailyClosure[]> {
     const q = query(

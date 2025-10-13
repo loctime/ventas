@@ -14,6 +14,12 @@ export function getBusinessDay(cutoffHour: number = 4): string {
   const now = new Date()
   const currentHour = now.getHours()
   
+  // Durante horario de trabajo normal (6:00 AM a 10:00 PM), siempre usar día actual
+  if (currentHour >= 6 && currentHour <= 22) {
+    return now.toISOString().split('T')[0]
+  }
+  
+  // Solo en horario nocturno (10:00 PM a 6:00 AM) usar la lógica de corte
   if (currentHour < cutoffHour) {
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
@@ -61,7 +67,19 @@ export function getClosureDateSuggestions(cutoffHour: number = 4): {
   yesterday.setDate(yesterday.getDate() - 1)
   const yesterdayStr = yesterday.toISOString().split('T')[0]
   
-  // Caso 1: Antes de medianoche - Solo hay una opción lógica
+  // Caso 1: Horario de trabajo normal (6:00 AM a 10:00 PM) - Solo hay una opción lógica
+  if (currentHour >= 6 && currentHour <= 22) {
+    return {
+      suggestedDate: calendarDay,
+      alternateDate: null,
+      isAfterMidnight: false,
+      businessDay,
+      calendarDay,
+      message: `Cerrando el día ${formatDateShort(calendarDay)}`
+    }
+  }
+  
+  // Caso 1b: Antes de medianoche pero fuera del horario normal - Solo hay una opción lógica
   if (!afterMidnight) {
     return {
       suggestedDate: calendarDay,
@@ -99,7 +117,10 @@ export function getClosureDateSuggestions(cutoffHour: number = 4): {
 }
 
 function formatDateShort(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-ES', {
+  // Parsear la fecha correctamente para evitar problemas de zona horaria
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day) // month es 0-indexado
+  return date.toLocaleDateString('es-ES', {
     weekday: 'short',
     day: 'numeric',
     month: 'short'
@@ -107,7 +128,10 @@ function formatDateShort(dateStr: string): string {
 }
 
 export function formatDateLong(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-ES', {
+  // Parsear la fecha correctamente para evitar problemas de zona horaria
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day) // month es 0-indexado
+  return date.toLocaleDateString('es-ES', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
