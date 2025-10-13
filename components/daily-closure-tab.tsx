@@ -32,29 +32,29 @@ export function DailyClosureTab() {
   const [newExpenseDesc, setNewExpenseDesc] = useState("")
   const [newExpenseAmount, setNewExpenseAmount] = useState("")
 
-  // Calcular totales de Work Mode
-  const workModeCollections = todayTransactions.filter(t => t.type === 'collection')
-  const workModePayments = todayTransactions.filter(t => t.type === 'payment')
+  // Calcular totales de transacciones registradas
+  const registeredCollections = todayTransactions.filter(t => t.type === 'collection')
+  const registeredPayments = todayTransactions.filter(t => t.type === 'payment')
   
-  const workModeCash = workModeCollections
+  const registeredCash = registeredCollections
     .filter(t => t.category === 'Efectivo' || t.category === 'cash')
     .reduce((sum, t) => sum + t.amount, 0)
   
-  const workModeCard = workModeCollections
+  const registeredCard = registeredCollections
     .filter(t => t.category === 'Tarjeta' || t.category === 'card')
     .reduce((sum, t) => sum + t.amount, 0)
   
-  const workModeTransfer = workModeCollections
+  const registeredTransfer = registeredCollections
     .filter(t => t.category === 'Transferencia' || t.category === 'transfer')
     .reduce((sum, t) => sum + t.amount, 0)
   
-  const workModeTotal = workModeCollections.reduce((sum, t) => sum + t.amount, 0)
-  const workModeExpenses = workModePayments.reduce((sum, t) => sum + t.amount, 0)
+  const registeredTotal = registeredCollections.reduce((sum, t) => sum + t.amount, 0)
+  const registeredExpenses = registeredPayments.reduce((sum, t) => sum + t.amount, 0)
 
   // Calcular totales del cierre
   const totalCounted = cashCounted + cardCounted + transferCounted
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
-  const difference = totalCounted - workModeTotal
+  const difference = totalCounted - registeredTotal
   const finalBalance = totalCounted - totalExpenses
 
   // Cargar datos existentes si hay un cierre guardado
@@ -228,9 +228,9 @@ export function DailyClosureTab() {
               placeholder="0"
               className="text-lg"
             />
-            {workModeCash > 0 && (
+            {registeredCash > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                Registrado en Work Mode: ${workModeCash.toLocaleString('es-AR')}
+                Ventas registradas: ${registeredCash.toLocaleString('es-AR')}
               </p>
             )}
           </div>
@@ -244,9 +244,9 @@ export function DailyClosureTab() {
               placeholder="0"
               className="text-lg"
             />
-            {workModeCard > 0 && (
+            {registeredCard > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                Registrado en Work Mode: ${workModeCard.toLocaleString('es-AR')}
+                Ventas registradas: ${registeredCard.toLocaleString('es-AR')}
               </p>
             )}
           </div>
@@ -260,9 +260,9 @@ export function DailyClosureTab() {
               placeholder="0"
               className="text-lg"
             />
-            {workModeTransfer > 0 && (
+            {registeredTransfer > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                Registrado en Work Mode: ${workModeTransfer.toLocaleString('es-AR')}
+                Ventas registradas: ${registeredTransfer.toLocaleString('es-AR')}
               </p>
             )}
           </div>
@@ -331,9 +331,9 @@ export function DailyClosureTab() {
           )}
         </div>
 
-        {workModeExpenses > 0 && (
+        {registeredExpenses > 0 && (
           <div className="text-xs text-muted-foreground mb-2">
-            Gastos registrados en Work Mode: ${workModeExpenses.toLocaleString('es-AR')}
+            Gastos registrados anteriormente: ${registeredExpenses.toLocaleString('es-AR')}
           </div>
         )}
 
@@ -345,20 +345,20 @@ export function DailyClosureTab() {
         </div>
       </Card>
 
-      {/* Comparación con Work Mode */}
-      {workModeTotal > 0 && (
+      {/* Comparación con ventas registradas (opcional) */}
+      {registeredTotal > 0 && (
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            📊 Comparación con Work Mode
+            📊 Verificación
           </h3>
 
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span>Registrado en Work Mode:</span>
-              <span className="font-semibold">${workModeTotal.toLocaleString('es-AR')}</span>
+              <span>Ventas registradas:</span>
+              <span className="font-semibold">${registeredTotal.toLocaleString('es-AR')}</span>
             </div>
             <div className="flex justify-between">
-              <span>Conteo Real:</span>
+              <span>Conteo real:</span>
               <span className="font-semibold">${totalCounted.toLocaleString('es-AR')}</span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t">
@@ -418,7 +418,7 @@ export function DailyClosureTab() {
 
       {todayTransactions.length > 0 && (
         <div className="text-xs text-muted-foreground text-center">
-          {todayTransactions.length} transacciones registradas en Work Mode hoy
+          {todayTransactions.length} transacción{todayTransactions.length !== 1 ? 'es' : ''} registrada{todayTransactions.length !== 1 ? 's' : ''} hoy
         </div>
       )}
     </div>

@@ -39,10 +39,8 @@ export function UserHeader({ showInstallButton, onInstallClick }: UserHeaderProp
       <div className="container max-w-4xl mx-auto px-4 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-balance">Control de Flujo de Caja</h1>
-            <p className="text-sm text-muted-foreground text-pretty">
-              Registra los ingresos y gastos de tu negocio
-            </p>
+            <h1 className="text-2xl font-bold text-balance">ControlVentas <span className="text-sm text-muted-foreground">Flujo de Caja</span></h1>
+            
           </div>
           
           <div className="flex items-center gap-2">

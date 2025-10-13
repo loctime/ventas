@@ -112,19 +112,19 @@ export function HistoryTab() {
           )}
         </Card>
 
-        {/* Comparación con Work Mode */}
+        {/* Verificación */}
         {selectedClosure.workModeTotal > 0 && (
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              📊 Comparación con Work Mode
+              📊 Verificación
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Registrado en Work Mode:</span>
+                <span className="text-muted-foreground">Ventas registradas:</span>
                 <span className="font-semibold">${selectedClosure.workModeTotal.toLocaleString('es-AR')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Conteo Real:</span>
+                <span className="text-muted-foreground">Conteo real:</span>
                 <span className="font-semibold">${selectedClosure.totalCounted.toLocaleString('es-AR')}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t">
@@ -237,7 +237,7 @@ export function HistoryTab() {
                 <div className="mt-2 pt-2 border-t flex items-center gap-2 text-xs">
                   <AlertCircle className={`h-3 w-3 ${closure.difference < 0 ? 'text-red-500' : 'text-yellow-500'}`} />
                   <span className="text-muted-foreground">
-                    Diferencia con Work Mode: 
+                    Diferencia: 
                     <span className={`font-semibold ml-1 ${closure.difference < 0 ? 'text-red-600' : 'text-yellow-600'}`}>
                       {closure.difference >= 0 ? '+' : ''}${closure.difference.toLocaleString('es-AR')}
                     </span>

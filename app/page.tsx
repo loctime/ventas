@@ -2,16 +2,15 @@
 
 import { useState } from "react"
 import { DailyClosureTab } from "@/components/daily-closure-tab"
-import { WorkModeWrapper } from "@/components/work-mode-wrapper"
 import { HistoryTab } from "@/components/history-tab"
 import { FirestoreCashflowProvider } from "@/contexts/firestore-cashflow-context"
 import { LoginPage } from "@/components/login-page"
 import { UserHeader } from "@/components/user-header"
 import { useAuth } from "@/contexts/auth-context"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
-import { DollarSign, Wrench, History } from "lucide-react"
+import { DollarSign, History } from "lucide-react"
 
-type Tab = "closure" | "workmode" | "history"
+type Tab = "closure" | "history"
 
 export default function CashflowApp() {
   const { user, loading } = useAuth()
@@ -51,48 +50,35 @@ export default function CashflowApp() {
         {/* Main Content */}
         <main className="flex-1 container max-w-4xl mx-auto px-4 py-6">
           {activeTab === "closure" && <DailyClosureTab />}
-          {activeTab === "workmode" && <WorkModeWrapper />}
           {activeTab === "history" && <HistoryTab />}
         </main>
 
-        {/* Bottom Navigation */}
+        {/* Bottom Navigation - Super Simple */}
         <nav className="bg-card border-t sticky bottom-0 z-40">
           <div className="container max-w-4xl mx-auto px-4">
-            <div className="grid grid-cols-3 gap-2 py-2">
+            <div className="grid grid-cols-2 gap-3 py-3">
               <button
                 onClick={() => setActiveTab("closure")}
-                className={`flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-colors ${
+                className={`flex flex-col items-center gap-2 py-4 px-4 rounded-lg transition-colors ${
                   activeTab === "closure"
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <DollarSign className="h-6 w-6" />
-                <span className="text-xs font-medium">Cierre</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("workmode")}
-                className={`flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-colors ${
-                  activeTab === "workmode"
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Wrench className="h-6 w-6" />
-                <span className="text-xs font-medium">Work Mode</span>
+                <DollarSign className="h-7 w-7" />
+                <span className="text-sm font-semibold">Cierre del Día</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("history")}
-                className={`flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-colors ${
+                className={`flex flex-col items-center gap-2 py-4 px-4 rounded-lg transition-colors ${
                   activeTab === "history"
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <History className="h-6 w-6" />
-                <span className="text-xs font-medium">Historial</span>
+                <History className="h-7 w-7" />
+                <span className="text-sm font-semibold">Historial</span>
               </button>
             </div>
           </div>
