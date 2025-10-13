@@ -77,7 +77,11 @@ export function DailyClosureTab() {
   const totalCounted = cashCounted + cardCounted + transferCounted
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
   const difference = totalCounted - registeredTotal
-  const finalBalance = totalCounted - totalExpenses
+  
+  // Calcular balance final - usar datos del cierre guardado si el día está cerrado
+  const finalBalance = todayClosure?.status === 'closed' 
+    ? (todayClosure.totalCounted - todayClosure.totalExpenses)
+    : (totalCounted - totalExpenses)
 
   // Función para obtener gastos frecuentes del historial
   const getFrequentExpenses = useCallback(() => {
@@ -538,6 +542,7 @@ export function DailyClosureTab() {
             <label className="text-sm font-medium">💵 Efectivo</label>
             <Input
               type="number"
+              inputMode="decimal"
               value={cashCounted || ""}
               onChange={(e) => setCashCounted(parseFloat(e.target.value) || 0)}
               placeholder="0"
@@ -554,6 +559,7 @@ export function DailyClosureTab() {
             <label className="text-sm font-medium">💳 Tarjeta</label>
             <Input
               type="number"
+              inputMode="decimal"
               value={cardCounted || ""}
               onChange={(e) => setCardCounted(parseFloat(e.target.value) || 0)}
               placeholder="0"
@@ -570,6 +576,7 @@ export function DailyClosureTab() {
             <label className="text-sm font-medium">🏦 Transferencias</label>
             <Input
               type="number"
+              inputMode="decimal"
               value={transferCounted || ""}
               onChange={(e) => setTransferCounted(parseFloat(e.target.value) || 0)}
               placeholder="0"
@@ -671,6 +678,7 @@ export function DailyClosureTab() {
               </div>
               <Input
                 type="number"
+                inputMode="decimal"
                 placeholder="Monto"
                 value={newExpenseAmount}
                 onChange={(e) => setNewExpenseAmount(e.target.value)}
