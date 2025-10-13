@@ -16,7 +16,7 @@ import {
   QuerySnapshot
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { DailyClosure, DailyExpense } from './types'
+import type { DailyClosure, DailyExpense, UserSettings } from './types'
 
 export interface Transaction {
   id?: string
@@ -326,6 +326,43 @@ export class FirestoreService {
       status: 'closed',
       closedAt: Date.now(),
       updatedAt: Date.now()
+    })
+  }
+
+  // ==================== USER SETTINGS ====================
+
+  async getUserSettings(): Promise<UserSettings | null> {
+    const docRef = doc(db, 'userSettings', this.userId)
+    const docSnap = await getDoc(docRef)
+
+    if (!docSnap.exists()) {
+      return null
+    }
+
+    return docSnap.data() as UserSettings
+  }
+
+  async saveUserSettings(settings: Partial<UserSettings>): Promise<void> {
+    const docRef = doc(db, 'userSettings', this.userId)
+    const settingsData = {
+      ...settings,
+      userId: this.userId,
+      updatedAt: Date.now()
+    }
+
+    await setDoc(docRef, settingsData, { merge: true })
+  }
+
+  subscribeToUserSettings(callback: (settings: UserSettings | null) => void) {
+    const docRef = doc(db, 'userSettings', this.userId)
+    
+    return onSnapshot(docRef, (doc) => {
+      if (!doc.exists()) {
+        callback(null)
+        return
+      }
+      
+      callback(doc.data() as UserSettings)
     })
   }
 }

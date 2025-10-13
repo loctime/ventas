@@ -66,3 +66,21 @@ export interface DailyClosure {
   createdAt: number
   closedAt?: number
 }
+
+// Configuración de usuario
+export interface UserSettings {
+  userId: string
+  businessDayCutoffHour: number // Hora de corte (0-23), por defecto 4
+  createdAt: number
+  updatedAt: number
+}
+
+// Helper para sugerir días al cerrar
+export interface ClosureDateSuggestion {
+  suggestedDate: string // Fecha sugerida por el sistema
+  alternateDate: string | null // Fecha alternativa si aplica
+  isAfterMidnight: boolean // Si estamos después de las 00:00
+  businessDay: string // Día comercial según hora de corte
+  calendarDay: string // Día del calendario actual
+  message: string
+}

@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para transacciones
+    match /transactions/{document} {
+      // Permitir lectura si el usuario está autenticado (el filtro por userId se hace en el query)
+      allow read: if request.auth != null;
+      // Permitir crear solo si el userId coincide
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Permitir actualizar/eliminar si el documento pertenece al usuario
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Reglas para métodos de pago
+    match /paymentMethods/{document} {
+      // Permitir lectura si el usuario está autenticado
+      allow read: if request.auth != null;
+      // Permitir crear solo si el userId coincide
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Permitir actualizar/eliminar si el documento pertenece al usuario
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Reglas para cierres diarios
+    match /dailyClosures/{closureId} {
+      // Permitir lectura si el usuario está autenticado
+      allow read: if request.auth != null;
+      // Permitir crear/actualizar si el closureId comienza con el uid del usuario
+      allow create, update: if request.auth != null 
+        && closureId.matches(request.auth.uid + '_.*')
+        && request.resource.data.userId == request.auth.uid;
+      // Permitir eliminar si el closureId comienza con el uid del usuario
+      allow delete: if request.auth != null && closureId.matches(request.auth.uid + '_.*');
+    }
+
+    // Reglas para configuración de usuario (NUEVO)
+    match /userSettings/{userId} {
+      // El userId del documento debe coincidir con el uid del usuario autenticado
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+

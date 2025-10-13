@@ -8,6 +8,8 @@ import { Textarea } from "./ui/textarea"
 import { Plus, X, AlertCircle, CheckCircle, Save } from "lucide-react"
 import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
 import type { DailyExpense } from "@/lib/types"
+import { ClosureDateSelectorDialog } from "./closure-date-selector-dialog"
+import { formatDateLong } from "@/lib/utils/business-day"
 
 export function DailyClosureTab() {
   const { 
@@ -15,7 +17,10 @@ export function DailyClosureTab() {
     todayTransactions, 
     saveTodayClosure, 
     closeDailyBalance,
-    loading 
+    loading,
+    activeWorkingDay,
+    isExtendedHours,
+    getClosureSuggestions,
   } = useFirestoreCashflow()
 
   const [cashCounted, setCashCounted] = useState(0)
@@ -31,6 +36,10 @@ export function DailyClosureTab() {
   // Campos para agregar nuevo gasto
   const [newExpenseDesc, setNewExpenseDesc] = useState("")
   const [newExpenseAmount, setNewExpenseAmount] = useState("")
+
+  // Estados para selector de fecha
+  const [showDateSelector, setShowDateSelector] = useState(false)
+  const [pendingClosure, setPendingClosure] = useState<any>(null)
 
   // Calcular totales de transacciones registradas
   const registeredCollections = todayTransactions.filter(t => t.type === 'collection')
@@ -130,20 +139,41 @@ export function DailyClosureTab() {
   }
 
   const handleFinalize = async () => {
-    if (!confirm("¿Estás seguro de finalizar el día? Esta acción no se puede deshacer.")) {
+    // Preparar datos del cierre
+    const closureData = {
+      cashCounted,
+      cardCounted,
+      transferCounted,
+      expenses,
+      note
+    }
+
+    // Obtener sugerencias de fecha
+    const suggestions = getClosureSuggestions()
+
+    // Si hay fecha alternativa (estamos después de medianoche), mostrar selector
+    if (suggestions.alternateDate) {
+      setPendingClosure(closureData)
+      setShowDateSelector(true)
+      return
+    }
+
+    // Si no hay alternativa, cerrar directamente
+    await finalizeClosure(closureData, suggestions.suggestedDate)
+  }
+
+  const finalizeClosure = async (closureData: any, selectedDate: string) => {
+    if (!confirm(`¿Estás seguro de finalizar el día ${formatDateLong(selectedDate)}? Esta acción no se puede deshacer.`)) {
       return
     }
 
     setSaving(true)
     try {
       await saveTodayClosure({
-        cashCounted,
-        cardCounted,
-        transferCounted,
-        expenses,
-        note
+        ...closureData,
+        closureDate: selectedDate
       })
-      await closeDailyBalance()
+      await closeDailyBalance(selectedDate)
       
       // Limpiar formulario
       setCashCounted(0)
@@ -151,17 +181,26 @@ export function DailyClosureTab() {
       setTransferCounted(0)
       setExpenses([])
       setNote("")
+      setPendingClosure(null)
     } finally {
       setSaving(false)
     }
   }
 
-  const today = new Date().toLocaleDateString('es-ES', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  })
+  const handleDateSelected = (selectedDate: string) => {
+    if (pendingClosure) {
+      finalizeClosure(pendingClosure, selectedDate)
+    }
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('es-ES', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  }
 
   if (todayClosure?.status === 'closed') {
     return (
@@ -192,7 +231,18 @@ export function DailyClosureTab() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold big-number">Cierre del Día</h2>
-            <p className="text-muted-foreground capitalize">{today}</p>
+            <p className="text-muted-foreground capitalize">
+              {activeWorkingDay ? formatDate(activeWorkingDay) : 'Cargando...'}
+            </p>
+            {/* Advertencia de horario extendido */}
+            {isExtendedHours && activeWorkingDay && (
+              <div className="mt-1 text-xs text-yellow-600 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>
+                  Horario extendido - Fecha actual: {new Date().toLocaleDateString('es-ES')}
+                </span>
+              </div>
+            )}
           </div>
           
           {/* Indicador de auto-guardado */}
@@ -424,6 +474,19 @@ export function DailyClosureTab() {
         <div className="text-xs text-muted-foreground text-center">
           {todayTransactions.length} transacción{todayTransactions.length !== 1 ? 'es' : ''} registrada{todayTransactions.length !== 1 ? 's' : ''} hoy
         </div>
+      )}
+
+      {/* Diálogo de selección de fecha */}
+      {showDateSelector && (
+        <ClosureDateSelectorDialog
+          open={showDateSelector}
+          onClose={() => {
+            setShowDateSelector(false)
+            setPendingClosure(null)
+          }}
+          {...getClosureSuggestions()}
+          onConfirm={handleDateSelected}
+        />
       )}
     </div>
   )
