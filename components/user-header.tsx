@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { InstallButton } from "@/components/install-button"
 import { useAuth } from "@/contexts/auth-context"
-import { LogOut, User } from "lucide-react"
+import { LogOut, User, Database } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface UserHeaderProps {
   showInstallButton?: boolean
@@ -20,6 +21,7 @@ interface UserHeaderProps {
 
 export function UserHeader({ showInstallButton, onInstallClick }: UserHeaderProps) {
   const { user, logout } = useAuth()
+  const router = useRouter()
 
   const handleLogout = async () => {
     await logout()
@@ -33,6 +35,9 @@ export function UserHeader({ showInstallButton, onInstallClick }: UserHeaderProp
       .toUpperCase()
       .slice(0, 2)
   }
+
+  // Verificar si estamos en desarrollo
+  const isDevelopment = process.env.NODE_ENV === 'development'
 
   return (
     <header className="bg-card border-b sticky top-0 z-40">
@@ -74,6 +79,15 @@ export function UserHeader({ showInstallButton, onInstallClick }: UserHeaderProp
                   </div>
                 </div>
                 <DropdownMenuSeparator />
+                {isDevelopment && (
+                  <>
+                    <DropdownMenuItem onClick={() => router.push('/generate-data')} className="cursor-pointer">
+                      <Database className="mr-2 h-4 w-4" />
+                      <span>Generar Datos de Ejemplo</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Cerrar sesión</span>

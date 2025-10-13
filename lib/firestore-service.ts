@@ -245,9 +245,14 @@ export class FirestoreService {
       updatedAt: Date.now()
     }
 
+    // Remover campos undefined (Firestore no los acepta)
+    const cleanedData = Object.fromEntries(
+      Object.entries(closureData).filter(([_, value]) => value !== undefined)
+    )
+
     // Usar la fecha como ID del documento para evitar duplicados
     const docRef = doc(db, 'dailyClosures', `${this.userId}_${closure.date}`)
-    await setDoc(docRef, closureData)
+    await setDoc(docRef, cleanedData)
   }
 
   // Obtener cierre de un día específico
