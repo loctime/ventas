@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
-import { Plus, X, AlertCircle, CheckCircle } from "lucide-react"
+import { Plus, X, AlertCircle, CheckCircle, Save } from "lucide-react"
 import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
 import type { DailyExpense } from "@/lib/types"
 
@@ -24,6 +24,9 @@ export function DailyClosureTab() {
   const [expenses, setExpenses] = useState<DailyExpense[]>([])
   const [note, setNote] = useState("")
   const [saving, setSaving] = useState(false)
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Campos para agregar nuevo gasto
   const [newExpenseDesc, setNewExpenseDesc] = useState("")
@@ -62,8 +65,51 @@ export function DailyClosureTab() {
       setTransferCounted(todayClosure.transferCounted)
       setExpenses(todayClosure.expenses)
       setNote(todayClosure.note || "")
+      setLastSaved(new Date(todayClosure.createdAt || Date.now()))
     }
   }, [todayClosure])
+
+  // Auto-guardar cada 3 segundos cuando hay cambios
+  useEffect(() => {
+    // Limpiar timeout anterior
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    // Si el día ya está cerrado, no auto-guardar
+    if (todayClosure?.status === 'closed') {
+      return
+    }
+
+    // Solo auto-guardar si hay algún valor ingresado
+    const hasData = cashCounted > 0 || cardCounted > 0 || transferCounted > 0 || expenses.length > 0
+
+    if (hasData) {
+      saveTimeoutRef.current = setTimeout(async () => {
+        setAutoSaving(true)
+        try {
+          await saveTodayClosure({
+            cashCounted,
+            cardCounted,
+            transferCounted,
+            expenses,
+            note
+          })
+          setLastSaved(new Date())
+        } catch (error) {
+          console.error('Error al auto-guardar:', error)
+        } finally {
+          setAutoSaving(false)
+        }
+      }, 3000) // 3 segundos de delay
+    }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [cashCounted, cardCounted, transferCounted, expenses, note, todayClosure?.status, saveTodayClosure])
 
   const handleAddExpense = () => {
     if (!newExpenseDesc.trim() || !newExpenseAmount) return
@@ -81,21 +127,6 @@ export function DailyClosureTab() {
 
   const handleRemoveExpense = (id: string) => {
     setExpenses(expenses.filter(e => e.id !== id))
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      await saveTodayClosure({
-        cashCounted,
-        cardCounted,
-        transferCounted,
-        expenses,
-        note
-      })
-    } finally {
-      setSaving(false)
-    }
   }
 
   const handleFinalize = async () => {
@@ -158,8 +189,27 @@ export function DailyClosureTab() {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold">Cierre del Día</h2>
-        <p className="text-muted-foreground capitalize">{today}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Cierre del Día</h2>
+            <p className="text-muted-foreground capitalize">{today}</p>
+          </div>
+          
+          {/* Indicador de auto-guardado */}
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            {autoSaving ? (
+              <>
+                <Save className="h-3 w-3 animate-pulse" />
+                <span>Guardando...</span>
+              </>
+            ) : lastSaved ? (
+              <>
+                <CheckCircle className="h-3 w-3 text-green-500" />
+                <span>Guardado {lastSaved.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {/* Ingresos del día */}
@@ -356,24 +406,15 @@ export function DailyClosureTab() {
         </div>
       </Card>
 
-      {/* Botones de acción */}
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={handleSave}
-          disabled={saving || loading}
-          className="flex-1"
-        >
-          {saving ? "Guardando..." : "Guardar Borrador"}
-        </Button>
-        <Button
-          onClick={handleFinalize}
-          disabled={saving || loading || totalCounted === 0}
-          className="flex-1"
-        >
-          {saving ? "Finalizando..." : "✓ Finalizar Día"}
-        </Button>
-      </div>
+      {/* Botón de acción */}
+      <Button
+        onClick={handleFinalize}
+        disabled={saving || loading || totalCounted === 0}
+        className="w-full"
+        size="lg"
+      >
+        {saving ? "Finalizando..." : "✓ Finalizar Día"}
+      </Button>
 
       {todayTransactions.length > 0 && (
         <div className="text-xs text-muted-foreground text-center">
