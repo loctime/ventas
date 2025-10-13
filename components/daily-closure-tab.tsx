@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
@@ -15,6 +15,7 @@ export function DailyClosureTab() {
   const { 
     todayClosure, 
     todayTransactions, 
+    dailyClosures,
     saveTodayClosure, 
     closeDailyBalance,
     loading,
@@ -46,6 +47,12 @@ export function DailyClosureTab() {
   
   // Estado para mostrar mensaje de datos restaurados
   const [showRestoredMessage, setShowRestoredMessage] = useState(false)
+  const hasLoadedInitialData = useRef(false)
+  
+  // Estados para gastos frecuentes
+  const [frequentExpenses, setFrequentExpenses] = useState<{[key: string]: number}>({})
+  const [showExpenseSuggestions, setShowExpenseSuggestions] = useState(false)
+  const [showInputSuggestions, setShowInputSuggestions] = useState(false)
 
   // Calcular totales de transacciones registradas
   const registeredCollections = todayTransactions.filter(t => t.type === 'collection')
@@ -72,29 +79,97 @@ export function DailyClosureTab() {
   const difference = totalCounted - registeredTotal
   const finalBalance = totalCounted - totalExpenses
 
+  // Función para obtener gastos frecuentes del historial
+  const getFrequentExpenses = useCallback(() => {
+    if (!dailyClosures || dailyClosures.length === 0) return {}
+
+    const expenseCount: {[key: string]: {count: number, lastAmount: number}} = {}
+    
+    // Analizar todos los cierres históricos
+    dailyClosures.forEach(closure => {
+      closure.expenses.forEach(expense => {
+        const key = expense.description.toLowerCase().trim()
+        if (expenseCount[key]) {
+          expenseCount[key].count += 1
+          expenseCount[key].lastAmount = expense.amount
+        } else {
+          expenseCount[key] = {
+            count: 1,
+            lastAmount: expense.amount
+          }
+        }
+      })
+    })
+
+    // Filtrar gastos que aparecen al menos 2 veces y convertir a formato simple
+    const frequent: {[key: string]: number} = {}
+    Object.entries(expenseCount).forEach(([description, data]) => {
+      if (data.count >= 2) {
+        // Capitalizar primera letra de cada palabra
+        const capitalizedDescription = description
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+        frequent[capitalizedDescription] = data.lastAmount
+      }
+    })
+
+    return frequent
+  }, [dailyClosures])
+
   // Cargar datos existentes si hay un cierre guardado
   useEffect(() => {
     if (todayClosure && todayClosure.status === 'open') {
-      setCashCounted(todayClosure.cashCounted)
-      setCardCounted(todayClosure.cardCounted)
-      setTransferCounted(todayClosure.transferCounted)
-      setExpenses(todayClosure.expenses)
-      setNote(todayClosure.note || "")
-      setLastSaved(new Date(todayClosure.createdAt || Date.now()))
+      // Solo cargar y mostrar mensaje si es la primera vez o si hay datos previos guardados
+      const hasExistingData = todayClosure.cashCounted > 0 || 
+                             todayClosure.cardCounted > 0 || 
+                             todayClosure.transferCounted > 0 || 
+                             todayClosure.expenses.length > 0
       
-      console.log('📝 Datos del cierre cargados para edición:', {
-        cashCounted: todayClosure.cashCounted,
-        cardCounted: todayClosure.cardCounted,
-        transferCounted: todayClosure.transferCounted,
-        expenses: todayClosure.expenses.length,
-        note: todayClosure.note
-      })
+      // Solo actualizar estados si no hemos cargado datos aún O si los valores son diferentes
+      const isDifferent = 
+        cashCounted !== todayClosure.cashCounted ||
+        cardCounted !== todayClosure.cardCounted ||
+        transferCounted !== todayClosure.transferCounted ||
+        expenses.length !== todayClosure.expenses.length ||
+        note !== (todayClosure.note || "")
       
-      // Mostrar mensaje de datos restaurados por 5 segundos
-      setShowRestoredMessage(true)
-      setTimeout(() => setShowRestoredMessage(false), 5000)
+      if (!hasLoadedInitialData.current && hasExistingData) {
+        setCashCounted(todayClosure.cashCounted)
+        setCardCounted(todayClosure.cardCounted)
+        setTransferCounted(todayClosure.transferCounted)
+        setExpenses(todayClosure.expenses)
+        setNote(todayClosure.note || "")
+        setLastSaved(new Date(todayClosure.createdAt || Date.now()))
+        
+        console.log('📝 Datos del cierre cargados para edición:', {
+          cashCounted: todayClosure.cashCounted,
+          cardCounted: todayClosure.cardCounted,
+          transferCounted: todayClosure.transferCounted,
+          expenses: todayClosure.expenses.length,
+          note: todayClosure.note
+        })
+        
+        // Mostrar mensaje de datos restaurados por 5 segundos
+        setShowRestoredMessage(true)
+        setTimeout(() => setShowRestoredMessage(false), 5000)
+        
+        hasLoadedInitialData.current = true
+      } else if (hasLoadedInitialData.current && isDifferent && !hasExistingData) {
+        // Si ya habíamos cargado datos y ahora no hay datos, resetear el flag
+        hasLoadedInitialData.current = false
+      }
+    } else if (!todayClosure || todayClosure.status !== 'open') {
+      // Resetear el flag cuando no hay cierre abierto
+      hasLoadedInitialData.current = false
     }
   }, [todayClosure])
+
+  // Cargar gastos frecuentes cuando se cargan los cierres
+  useEffect(() => {
+    const frequent = getFrequentExpenses()
+    setFrequentExpenses(frequent)
+  }, [getFrequentExpenses])
 
   // Auto-guardar cada 3 segundos cuando hay cambios
   useEffect(() => {
@@ -154,6 +229,39 @@ export function DailyClosureTab() {
 
   const handleRemoveExpense = (id: string) => {
     setExpenses(expenses.filter(e => e.id !== id))
+  }
+
+  // Función para agregar gasto frecuente
+  const handleQuickExpense = (description: string, amount: number) => {
+    const newExpense: DailyExpense = {
+      id: crypto.randomUUID(),
+      description,
+      amount
+    }
+    setExpenses(prev => [...prev, newExpense])
+    
+    // Actualizar el monto más reciente para este gasto frecuente
+    setFrequentExpenses(prev => ({
+      ...prev,
+      [description]: amount
+    }))
+  }
+
+  // Función para obtener sugerencias basadas en el input
+  const getInputSuggestions = () => {
+    if (!newExpenseDesc || newExpenseDesc.length < 2) return []
+    
+    const query = newExpenseDesc.toLowerCase().trim()
+    return Object.entries(frequentExpenses).filter(([description]) =>
+      description.toLowerCase().includes(query)
+    )
+  }
+
+  // Función para seleccionar sugerencia del input
+  const handleSelectSuggestion = (description: string, amount: number) => {
+    setNewExpenseDesc(description)
+    setNewExpenseAmount(amount.toString())
+    setShowInputSuggestions(false)
   }
 
   const handleFinalize = async () => {
@@ -490,27 +598,89 @@ export function DailyClosureTab() {
           Gastos del Día
         </h3>
 
+        {/* Gastos frecuentes */}
+        {Object.keys(frequentExpenses).length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-muted-foreground">Gastos Frecuentes</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowExpenseSuggestions(!showExpenseSuggestions)}
+                className="text-xs"
+              >
+                {showExpenseSuggestions ? 'Ocultar' : 'Mostrar'} ({Object.keys(frequentExpenses).length})
+              </Button>
+            </div>
+            
+            {showExpenseSuggestions && (
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {Object.entries(frequentExpenses).map(([description, lastAmount]) => (
+                  <Button
+                    key={description}
+                    variant="outline"
+                    onClick={() => handleQuickExpense(description, lastAmount)}
+                    className="h-auto p-3 flex flex-col items-start gap-1 modern-button"
+                  >
+                    <span className="font-medium text-left">{description}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Último: ${lastAmount.toLocaleString('es-AR')}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Agregar nuevo gasto */}
         <div className="space-y-3 mb-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Descripción del gasto"
-              value={newExpenseDesc}
-              onChange={(e) => setNewExpenseDesc(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddExpense()}
-              className="modern-input"
-            />
-            <Input
-              type="number"
-              placeholder="Monto"
-              value={newExpenseAmount}
-              onChange={(e) => setNewExpenseAmount(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddExpense()}
-              className="w-32 modern-input"
-            />
-            <Button onClick={handleAddExpense} size="icon" className="modern-button">
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="relative">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  placeholder="Descripción del gasto"
+                  value={newExpenseDesc}
+                  onChange={(e) => {
+                    setNewExpenseDesc(e.target.value)
+                    setShowInputSuggestions(e.target.value.length >= 2)
+                  }}
+                  onFocus={() => setShowInputSuggestions(newExpenseDesc.length >= 2)}
+                  onBlur={() => setTimeout(() => setShowInputSuggestions(false), 200)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddExpense()}
+                  className="modern-input"
+                />
+                
+                {/* Sugerencias en tiempo real */}
+                {showInputSuggestions && getInputSuggestions().length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                    {getInputSuggestions().map(([description, amount]) => (
+                      <button
+                        key={description}
+                        onClick={() => handleSelectSuggestion(description, amount)}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                      >
+                        <div className="font-medium">{description}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Último: ${amount.toLocaleString('es-AR')}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Input
+                type="number"
+                placeholder="Monto"
+                value={newExpenseAmount}
+                onChange={(e) => setNewExpenseAmount(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddExpense()}
+                className="w-32 modern-input"
+              />
+              <Button onClick={handleAddExpense} size="icon" className="modern-button">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
