@@ -438,6 +438,17 @@ export class FirestoreService {
     await Promise.all(closePromises)
   }
 
+  // Cancelar un cierre específico (volver a estado abierto)
+  async cancelDailyClosure(dateStr: string, closureId?: string): Promise<void> {
+    const targetId = closureId || `${this.userId}_${dateStr}`
+    const docRef = doc(db, 'dailyClosures', targetId)
+    await updateDoc(docRef, {
+      status: 'open',
+      closedAt: undefined,
+      updatedAt: Date.now()
+    })
+  }
+
   // ==================== USER SETTINGS ====================
 
   async getUserSettings(): Promise<UserSettings | null> {

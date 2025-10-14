@@ -414,12 +414,14 @@ export function DailyClosureTab() {
         rememberChoice
       )
       
-      // Limpiar formulario después del conflicto
-      setCashCounted(0)
-      setCardCounted(0)
-      setTransferCounted(0)
-      setExpenses([])
-      setNote("")
+      // Solo limpiar formulario si NO es modo "edit"
+      if (action !== 'edit') {
+        setCashCounted(0)
+        setCardCounted(0)
+        setTransferCounted(0)
+        setExpenses([])
+        setNote("")
+      }
       
       // Cerrar diálogos
       setShowConflictDialog(false)

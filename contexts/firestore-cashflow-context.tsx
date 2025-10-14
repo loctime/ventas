@@ -384,25 +384,37 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
 
       const workingDay = closureData.closureDate || activeWorkingDay
 
+      console.log('🔄 Ejecutando acción de conflicto:', action)
+      
       switch (action) {
         case 'replace':
+          console.log('🔄 Modo: Reemplazar cierre anterior')
           // Eliminar cierre anterior y crear nuevo
           await firestoreService.deleteDailyClosure(workingDay)
           await saveTodayClosure(closureData)
           await closeDailyBalance(workingDay)
+          console.log('✅ Cierre anterior eliminado y nuevo creado')
           break
           
         case 'multiple':
+          console.log('➕ Modo: Crear cierre adicional')
           // Crear cierre adicional con numeración
           const closureNumber = await firestoreService.getNextClosureNumber(workingDay)
+          console.log('📝 Número de cierre asignado:', closureNumber)
+          
           await saveTodayClosure({
             ...closureData,
-            closureNumber
+            closureNumber,
+            closureDate: workingDay
           })
-          await firestoreService.closeDailyBalance(workingDay, `${user.uid}_${workingDay}_${closureNumber}`)
+          // Cerrar el nuevo cierre específico
+          const newClosureId = `${user.uid}_${workingDay}_${closureNumber}`
+          await firestoreService.closeDailyBalance(workingDay, newClosureId)
+          console.log('✅ Cierre adicional creado con ID:', newClosureId)
           break
           
         case 'unify':
+          console.log('🔗 Modo: Unificar cierres')
           // Combinar datos y crear cierre unificado
           const unifiedData = {
             cashCounted: existingClosure.cashCounted + closureData.cashCounted,
@@ -412,16 +424,25 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
             note: [existingClosure.note, closureData.note].filter(Boolean).join(' | '),
             closureDate: workingDay
           }
+          console.log('🔗 Datos unificados:', unifiedData)
+          
           await firestoreService.deleteDailyClosure(workingDay)
           await saveTodayClosure(unifiedData)
           await closeDailyBalance(workingDay)
+          console.log('✅ Cierres unificados exitosamente')
           break
           
         case 'edit':
+          console.log('✏️ Modo: Editar cierre anterior')
           // Cancelar cierre anterior y permitir edición
-          await firestoreService.closeDailyBalance(workingDay, existingClosure.id)
-          // El usuario podrá editar en el formulario
+          await firestoreService.cancelDailyClosure(workingDay, existingClosure.id)
+          console.log('✅ Cierre anterior cancelado, listo para edición')
+          // El usuario podrá editar en el formulario - no se cierra automáticamente
           break
+          
+        default:
+          console.error('❌ Acción no reconocida:', action)
+          throw new Error(`Acción no reconocida: ${action}`)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al manejar conflicto de cierre')
