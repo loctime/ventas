@@ -39,6 +39,7 @@ interface CashflowContextType {
   handleClosureConflict: (action: string, closureData: any, existingClosure: DailyClosure, rememberChoice?: boolean) => Promise<void>
   getConflictRecommendation: (existingClosure: DailyClosure) => 'unify' | 'multiple' | 'replace'
   getClosureByDate: (dateStr: string) => Promise<DailyClosure | null>
+  updateClosurePreferences: (behavior: string, threshold: number) => Promise<void>
   // Business Day
   activeWorkingDay: string
   businessDayCutoff: number
@@ -472,6 +473,23 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     }
   }, [firestoreService, dailyClosures])
 
+  // Actualizar preferencias de cierre
+  const updateClosurePreferences = useCallback(async (behavior: string, threshold: number) => {
+    if (!firestoreService || !userSettings) return
+    
+    try {
+      await firestoreService.saveUserSettings({
+        ...userSettings,
+        closureConflictBehavior: behavior as any,
+        unifiedClosureThreshold: threshold * 60 * 1000, // Convertir a milisegundos
+        updatedAt: Date.now()
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar preferencias de cierre')
+      throw err
+    }
+  }, [firestoreService, userSettings])
+
   // Actualizar hora de corte
   const updateBusinessDayCutoff = useCallback(async (hour: number) => {
     if (!firestoreService) return
@@ -578,6 +596,7 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     handleClosureConflict,
     getConflictRecommendation,
     getClosureByDate,
+    updateClosurePreferences,
     // Business Day
     activeWorkingDay,
     businessDayCutoff,

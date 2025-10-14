@@ -12,6 +12,7 @@ export function SettingsTab() {
   const { 
     businessDayCutoff, 
     updateBusinessDayCutoff,
+    updateClosurePreferences,
     userSettings 
   } = useFirestoreCashflow()
   
@@ -39,15 +40,35 @@ export function SettingsTab() {
         userSettings.closureConflictBehavior !== conflictBehavior ||
         userSettings.unifiedClosureThreshold !== unifiedThreshold * 60 * 1000 // Convertir a milisegundos
       )) {
-        // Aquí necesitaríamos una función para actualizar las preferencias de cierre
-        // Por ahora solo guardamos la hora de corte
-        console.log('Preferencias de cierre cambiadas:', { conflictBehavior, unifiedThreshold })
+        await updateClosurePreferences(conflictBehavior, unifiedThreshold)
       }
       
       setSaved(true)
       setTimeout(() => setSaved(false), 3000) // Ocultar mensaje después de 3 segundos
     } catch (error) {
       console.error('Error al guardar configuración:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resetClosurePreferences = async () => {
+    if (!confirm('¿Estás seguro de resetear las preferencias de cierre? Esto volverá a mostrar el diálogo de conflicto en futuros cierres.')) {
+      return
+    }
+
+    setSaving(true)
+    try {
+      setConflictBehavior('ask')
+      setUnifiedThreshold(120) // 2 horas por defecto
+      
+      // Actualizar las preferencias en Firestore
+      await updateClosurePreferences('ask', 120)
+      
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (error) {
+      console.error('Error al resetear preferencias:', error)
     } finally {
       setSaving(false)
     }
@@ -206,8 +227,30 @@ export function SettingsTab() {
             </div>
           </div>
 
+          {/* Estado actual */}
+          <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="font-medium text-green-900 dark:text-green-100 text-sm">
+                Estado actual
+              </span>
+            </div>
+            <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
+              <p><strong>Comportamiento:</strong> {conflictBehavior === 'ask' ? 'Preguntar siempre' : 
+                conflictBehavior === 'always_unify' ? 'Siempre unificar' :
+                conflictBehavior === 'always_multiple' ? 'Siempre crear múltiples' :
+                'Siempre reemplazar'}</p>
+              <p><strong>Umbral de unificación:</strong> {unifiedThreshold} minutos</p>
+              {conflictBehavior !== 'ask' && (
+                <p className="text-orange-600 dark:text-orange-400 font-medium">
+                  ⚠️ El sistema aplicará automáticamente esta acción sin preguntar
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Información adicional */}
-          <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
@@ -225,7 +268,15 @@ export function SettingsTab() {
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-between pt-4">
+          <Button 
+            onClick={resetClosurePreferences}
+            disabled={saving}
+            variant="outline"
+            size="sm"
+          >
+            🔄 Resetear Preferencias
+          </Button>
           <Button 
             onClick={handleSave}
             disabled={saving}
@@ -261,6 +312,8 @@ export function SettingsTab() {
           <li>• Al cerrar después de medianoche, podrás elegir qué día cerrar</li>
           <li>• El sistema te sugerirá el día correcto según tu configuración</li>
           <li>• Puedes elegir manualmente si la sugerencia no es correcta</li>
+          <li>• Si marcas "Recordar elección" en el diálogo, el sistema aplicará automáticamente la misma acción</li>
+          <li>• Puedes resetear las preferencias aquí para volver a ver el diálogo de conflicto</li>
         </ul>
       </Card>
     </div>
