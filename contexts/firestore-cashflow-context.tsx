@@ -33,8 +33,11 @@ interface CashflowContextType {
     expenses: DailyExpense[]
     note?: string
     closureDate?: string
+    closureNumber?: number
   }) => Promise<void>
   closeDailyBalance: (closureDate?: string) => Promise<void>
+  handleClosureConflict: (action: string, closureData: any, existingClosure: DailyClosure, rememberChoice?: boolean) => Promise<void>
+  getConflictRecommendation: (existingClosure: DailyClosure) => 'unify' | 'multiple' | 'replace'
   // Business Day
   activeWorkingDay: string
   businessDayCutoff: number
@@ -288,6 +291,7 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     expenses: DailyExpense[]
     note?: string
     closureDate?: string
+    closureNumber?: number
   }) => {
     if (!firestoreService || !user) return
     
@@ -326,7 +330,8 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
         note: data.note,
         finalBalance,
         status: 'open',
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        closureNumber: data.closureNumber
       }
 
       await firestoreService.saveDailyClosure(closure)
@@ -353,6 +358,90 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
       throw err
     }
   }, [firestoreService, activeWorkingDay, businessDayCutoff])
+
+  // Manejar conflictos de cierre
+  const handleClosureConflict = useCallback(async (
+    action: string,
+    closureData: any,
+    existingClosure: DailyClosure,
+    rememberChoice: boolean = false
+  ) => {
+    if (!firestoreService || !user) return
+    
+    try {
+      setError(null)
+      
+      // Guardar preferencia si se solicita
+      if (rememberChoice && userSettings) {
+        await firestoreService.saveUserSettings({
+          ...userSettings,
+          closureConflictBehavior: action as any,
+          updatedAt: Date.now()
+        })
+      }
+
+      const workingDay = closureData.closureDate || activeWorkingDay
+
+      switch (action) {
+        case 'replace':
+          // Eliminar cierre anterior y crear nuevo
+          await firestoreService.deleteDailyClosure(workingDay)
+          await saveTodayClosure(closureData)
+          await closeDailyBalance(workingDay)
+          break
+          
+        case 'multiple':
+          // Crear cierre adicional con numeración
+          const closureNumber = await firestoreService.getNextClosureNumber(workingDay)
+          await saveTodayClosure({
+            ...closureData,
+            closureNumber
+          })
+          await firestoreService.closeDailyBalance(workingDay, `${user.uid}_${workingDay}_${closureNumber}`)
+          break
+          
+        case 'unify':
+          // Combinar datos y crear cierre unificado
+          const unifiedData = {
+            cashCounted: existingClosure.cashCounted + closureData.cashCounted,
+            cardCounted: existingClosure.cardCounted + closureData.cardCounted,
+            transferCounted: existingClosure.transferCounted + closureData.transferCounted,
+            expenses: [...existingClosure.expenses, ...closureData.expenses],
+            note: [existingClosure.note, closureData.note].filter(Boolean).join(' | '),
+            closureDate: workingDay
+          }
+          await firestoreService.deleteDailyClosure(workingDay)
+          await saveTodayClosure(unifiedData)
+          await closeDailyBalance(workingDay)
+          break
+          
+        case 'edit':
+          // Cancelar cierre anterior y permitir edición
+          await firestoreService.closeDailyBalance(workingDay, existingClosure.id)
+          // El usuario podrá editar en el formulario
+          break
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al manejar conflicto de cierre')
+      throw err
+    }
+  }, [firestoreService, user, activeWorkingDay, saveTodayClosure, closeDailyBalance, userSettings])
+
+  // Obtener recomendación de acción para conflicto
+  const getConflictRecommendation = useCallback((existingClosure: DailyClosure): 'unify' | 'multiple' | 'replace' => {
+    if (!existingClosure.closedAt) return 'replace'
+    
+    const timeDiff = Date.now() - existingClosure.closedAt
+    const threshold = userSettings?.unifiedClosureThreshold || 120 * 60 * 1000 // 2 horas por defecto
+    
+    // Si hay poca diferencia de tiempo, recomendar unificar
+    if (timeDiff < threshold) {
+      return 'unify'
+    }
+    
+    // Si hay mucha diferencia, recomendar múltiples cierres
+    return 'multiple'
+  }, [userSettings])
 
   // Actualizar hora de corte
   const updateBusinessDayCutoff = useCallback(async (hour: number) => {
@@ -457,6 +546,8 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     dailyClosures,
     saveTodayClosure,
     closeDailyBalance,
+    handleClosureConflict,
+    getConflictRecommendation,
     // Business Day
     activeWorkingDay,
     businessDayCutoff,

@@ -65,6 +65,11 @@ export interface DailyClosure {
   status: "open" | "closed"
   createdAt: number
   closedAt?: number
+  
+  // Campos para múltiples cierres
+  closureNumber?: number // Número de cierre del día (1, 2, 3...)
+  parentDate?: string // Fecha padre para cierres unificados
+  unifiedFrom?: string[] // IDs de cierres que se unificaron en este
 }
 
 // Configuración de usuario
@@ -73,6 +78,10 @@ export interface UserSettings {
   businessDayCutoffHour: number // Hora de corte (0-23), por defecto 4
   createdAt: number
   updatedAt: number
+  
+  // Preferencias para conflictos de cierre
+  closureConflictBehavior?: 'ask' | 'always_unify' | 'always_multiple' | 'always_replace'
+  unifiedClosureThreshold?: number // Minutos para considerar unificar automáticamente
 }
 
 // Helper para sugerir días al cerrar
@@ -84,3 +93,19 @@ export interface ClosureDateSuggestion {
   calendarDay: string // Día del calendario actual
   message: string
 }
+
+// Tipos para manejo de conflictos de cierre
+export interface ClosureConflictData {
+  existingClosure: DailyClosure
+  newClosureData: {
+    cashCounted: number
+    cardCounted: number
+    transferCounted: number
+    expenses: DailyExpense[]
+    note?: string
+    finalBalance: number
+  }
+  recommendedAction: 'unify' | 'multiple' | 'replace'
+}
+
+export type ClosureConflictAction = 'unify' | 'multiple' | 'replace' | 'edit'

@@ -250,12 +250,16 @@ export class FirestoreService {
       Object.entries(closureData).filter(([_, value]) => value !== undefined)
     )
 
-    // Usar la fecha como ID del documento para evitar duplicados
-    const docRef = doc(db, 'dailyClosures', `${this.userId}_${closure.date}`)
+    // Generar ID basado en fecha y número de cierre
+    const closureId = closure.closureNumber 
+      ? `${this.userId}_${closure.date}_${closure.closureNumber}`
+      : `${this.userId}_${closure.date}`
+
+    const docRef = doc(db, 'dailyClosures', closureId)
     await setDoc(docRef, cleanedData)
   }
 
-  // Obtener cierre de un día específico
+  // Obtener cierre de un día específico (el más reciente si hay múltiples)
   async getDailyClosure(dateStr: string): Promise<DailyClosure | null> {
     const docRef = doc(db, 'dailyClosures', `${this.userId}_${dateStr}`)
     const docSnap = await getDoc(docRef)
@@ -270,10 +274,99 @@ export class FirestoreService {
     } as DailyClosure
   }
 
+  // Obtener todos los cierres de un día específico
+  async getDailyClosuresForDate(dateStr: string): Promise<DailyClosure[]> {
+    const q = query(
+      collection(db, 'dailyClosures'),
+      where('userId', '==', this.userId),
+      where('date', '==', dateStr),
+      orderBy('createdAt', 'desc')
+    )
+
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as DailyClosure[]
+  }
+
+  // Obtener el siguiente número de cierre para un día
+  async getNextClosureNumber(dateStr: string): Promise<number> {
+    const closures = await this.getDailyClosuresForDate(dateStr)
+    const maxNumber = closures.reduce((max, closure) => {
+      return Math.max(max, closure.closureNumber || 1)
+    }, 0)
+    return maxNumber + 1
+  }
+
   // Eliminar cierre de un día específico
   async deleteDailyClosure(dateStr: string): Promise<void> {
     const docRef = doc(db, 'dailyClosures', `${this.userId}_${dateStr}`)
     await deleteDoc(docRef)
+  }
+
+  // Eliminar cierre específico por ID
+  async deleteClosureById(closureId: string): Promise<void> {
+    const docRef = doc(db, 'dailyClosures', closureId)
+    await deleteDoc(docRef)
+  }
+
+  // Eliminar todos los cierres de un día específico
+  async deleteAllDailyClosures(dateStr: string): Promise<void> {
+    const closures = await this.getDailyClosuresForDate(dateStr)
+    const deletePromises = closures.map(closure => 
+      this.deleteClosureById(closure.id)
+    )
+    await Promise.all(deletePromises)
+  }
+
+  // Unificar cierres de un día
+  async unifyDailyClosures(dateStr: string): Promise<DailyClosure> {
+    const closures = await this.getDailyClosuresForDate(dateStr)
+    
+    if (closures.length === 0) {
+      throw new Error('No hay cierres para unificar')
+    }
+
+    if (closures.length === 1) {
+      return closures[0]
+    }
+
+    // Combinar todos los cierres
+    const unifiedClosure = closures.reduce((unified, closure) => ({
+      ...unified,
+      cashCounted: unified.cashCounted + closure.cashCounted,
+      cardCounted: unified.cardCounted + closure.cardCounted,
+      transferCounted: unified.transferCounted + closure.transferCounted,
+      totalCounted: unified.totalCounted + closure.totalCounted,
+      expenses: [...unified.expenses, ...closure.expenses],
+      totalExpenses: unified.totalExpenses + closure.totalExpenses,
+      workModeTransactionIds: [...new Set([...unified.workModeTransactionIds, ...closure.workModeTransactionIds])],
+      workModeTotal: unified.workModeTotal + closure.workModeTotal,
+      difference: unified.difference + closure.difference,
+      note: [unified.note, closure.note].filter(Boolean).join(' | '),
+      finalBalance: unified.finalBalance + closure.finalBalance,
+      unifiedFrom: [...(unified.unifiedFrom || []), ...(closure.unifiedFrom || []), closure.id]
+    }), {
+      ...closures[0],
+      unifiedFrom: [closures[0].id]
+    })
+
+    // Eliminar cierres originales
+    await this.deleteAllDailyClosures(dateStr)
+
+    // Crear cierre unificado
+    const unifiedClosureData = {
+      ...unifiedClosure,
+      id: `${this.userId}_${dateStr}`,
+      closureNumber: undefined, // El cierre unificado no tiene número
+      parentDate: dateStr,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+
+    await this.saveDailyClosure(unifiedClosureData)
+    return unifiedClosureData as DailyClosure
   }
 
   // Obtener todos los cierres (para historial)
@@ -326,13 +419,23 @@ export class FirestoreService {
   }
 
   // Cerrar el día (marcar como cerrado)
-  async closeDailyBalance(dateStr: string): Promise<void> {
-    const docRef = doc(db, 'dailyClosures', `${this.userId}_${dateStr}`)
+  async closeDailyBalance(dateStr: string, closureId?: string): Promise<void> {
+    const targetId = closureId || `${this.userId}_${dateStr}`
+    const docRef = doc(db, 'dailyClosures', targetId)
     await updateDoc(docRef, {
       status: 'closed',
       closedAt: Date.now(),
       updatedAt: Date.now()
     })
+  }
+
+  // Cerrar todos los cierres de un día
+  async closeAllDailyClosures(dateStr: string): Promise<void> {
+    const closures = await this.getDailyClosuresForDate(dateStr)
+    const closePromises = closures.map(closure => 
+      this.closeDailyBalance(dateStr, closure.id)
+    )
+    await Promise.all(closePromises)
   }
 
   // ==================== USER SETTINGS ====================

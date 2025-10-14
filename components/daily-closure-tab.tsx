@@ -9,6 +9,7 @@ import { Plus, X, AlertCircle, CheckCircle, Save } from "lucide-react"
 import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
 import type { DailyExpense } from "@/lib/types"
 import { ClosureDateSelectorDialog } from "./closure-date-selector-dialog"
+import { ClosureConflictDialog } from "./closure-conflict-dialog"
 import { formatDateLong, getBusinessDay } from "@/lib/utils/business-day"
 
 export function DailyClosureTab() {
@@ -18,6 +19,8 @@ export function DailyClosureTab() {
     dailyClosures,
     saveTodayClosure, 
     closeDailyBalance,
+    handleClosureConflict,
+    getConflictRecommendation,
     loading,
     activeWorkingDay,
     isExtendedHours,
@@ -44,6 +47,10 @@ export function DailyClosureTab() {
   // Estados para selector de fecha
   const [showDateSelector, setShowDateSelector] = useState(false)
   const [pendingClosure, setPendingClosure] = useState<any>(null)
+  
+  // Estados para diálogo de conflictos
+  const [showConflictDialog, setShowConflictDialog] = useState(false)
+  const [conflictData, setConflictData] = useState<any>(null)
   
   // Estado para mostrar mensaje de datos restaurados
   const [showRestoredMessage, setShowRestoredMessage] = useState(false)
@@ -288,8 +295,37 @@ export function DailyClosureTab() {
       return
     }
 
-    // Si no hay alternativa, cerrar directamente
+    // Verificar si ya existe un cierre para esta fecha
+    const existingClosure = await checkExistingClosure(suggestions.suggestedDate)
+    
+    if (existingClosure && existingClosure.status === 'closed') {
+      // Hay un conflicto, mostrar diálogo
+      const recommendation = getConflictRecommendation(existingClosure)
+      setConflictData({
+        existingClosure,
+        newClosureData: {
+          ...closureData,
+          finalBalance: (cashCounted + cardCounted + transferCounted) - expenses.reduce((sum, e) => sum + e.amount, 0)
+        },
+        recommendedAction: recommendation
+      })
+      setShowConflictDialog(true)
+      return
+    }
+
+    // Si no hay conflicto, cerrar directamente
     await finalizeClosure(closureData, suggestions.suggestedDate)
+  }
+
+  // Función para verificar si existe un cierre para una fecha
+  const checkExistingClosure = async (dateStr: string) => {
+    // Buscar en el contexto local primero
+    const localClosure = dailyClosures.find(c => c.date === dateStr)
+    if (localClosure) return localClosure
+    
+    // Si no está en el contexto, intentar obtenerlo del servicio
+    // (esto requeriría exponer el servicio desde el contexto)
+    return null
   }
 
   const finalizeClosure = async (closureData: any, selectedDate: string) => {
@@ -320,6 +356,36 @@ export function DailyClosureTab() {
   const handleDateSelected = (selectedDate: string) => {
     if (pendingClosure) {
       finalizeClosure(pendingClosure, selectedDate)
+    }
+  }
+
+  // Manejar confirmación de conflicto
+  const handleConflictConfirm = async (action: string, rememberChoice: boolean) => {
+    if (!conflictData) return
+
+    try {
+      await handleClosureConflict(
+        action,
+        {
+          ...conflictData.newClosureData,
+          closureDate: activeWorkingDay
+        },
+        conflictData.existingClosure,
+        rememberChoice
+      )
+      
+      // Limpiar formulario después del conflicto
+      setCashCounted(0)
+      setCardCounted(0)
+      setTransferCounted(0)
+      setExpenses([])
+      setNote("")
+      
+      // Cerrar diálogos
+      setShowConflictDialog(false)
+      setConflictData(null)
+    } catch (error) {
+      console.error('Error al manejar conflicto:', error)
     }
   }
 
@@ -808,6 +874,21 @@ export function DailyClosureTab() {
           }}
           {...getClosureSuggestions()}
           onConfirm={handleDateSelected}
+        />
+      )}
+
+      {/* Diálogo de conflicto de cierres */}
+      {showConflictDialog && conflictData && (
+        <ClosureConflictDialog
+          open={showConflictDialog}
+          existingClosure={conflictData.existingClosure}
+          newClosureData={conflictData.newClosureData}
+          recommendedAction={conflictData.recommendedAction}
+          onClose={() => {
+            setShowConflictDialog(false)
+            setConflictData(null)
+          }}
+          onConfirm={handleConflictConfirm}
         />
       )}
     </div>
