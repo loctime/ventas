@@ -38,6 +38,7 @@ interface CashflowContextType {
   closeDailyBalance: (closureDate?: string) => Promise<void>
   handleClosureConflict: (action: string, closureData: any, existingClosure: DailyClosure, rememberChoice?: boolean) => Promise<void>
   getConflictRecommendation: (existingClosure: DailyClosure) => 'unify' | 'multiple' | 'replace'
+  getClosureByDate: (dateStr: string) => Promise<DailyClosure | null>
   // Business Day
   activeWorkingDay: string
   businessDayCutoff: number
@@ -443,6 +444,34 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     return 'multiple'
   }, [userSettings])
 
+  // Obtener cierre por fecha específica
+  const getClosureByDate = useCallback(async (dateStr: string): Promise<DailyClosure | null> => {
+    if (!firestoreService) {
+      console.log('❌ No hay servicio de Firestore disponible')
+      return null
+    }
+    
+    try {
+      console.log('🔍 Buscando cierre para fecha:', dateStr)
+      
+      // Buscar en el contexto local primero
+      const localClosure = dailyClosures.find(c => c.date === dateStr)
+      if (localClosure) {
+        console.log('✅ Cierre encontrado en contexto local:', localClosure)
+        return localClosure
+      }
+      
+      // Si no está en el contexto, obtener del servicio
+      console.log('🔍 Buscando cierre en Firestore...')
+      const firestoreClosure = await firestoreService.getDailyClosure(dateStr)
+      console.log('📊 Resultado de Firestore:', firestoreClosure)
+      return firestoreClosure
+    } catch (error) {
+      console.error('Error al obtener cierre por fecha:', error)
+      return null
+    }
+  }, [firestoreService, dailyClosures])
+
   // Actualizar hora de corte
   const updateBusinessDayCutoff = useCallback(async (hour: number) => {
     if (!firestoreService) return
@@ -548,6 +577,7 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
     closeDailyBalance,
     handleClosureConflict,
     getConflictRecommendation,
+    getClosureByDate,
     // Business Day
     activeWorkingDay,
     businessDayCutoff,

@@ -88,57 +88,49 @@ export function ClosureConflictDialog({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <AlertCircle className="h-5 w-5 text-yellow-500" />
             Conflicto de Cierre
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Ya existe un cierre para este día. Elige cómo proceder:
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Resumen de cierres */}
-          <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+          <div className="grid grid-cols-2 gap-3 p-3 bg-muted rounded-lg">
             <div className="text-center">
-              <h4 className="font-semibold text-sm text-muted-foreground">Cierre Existente</h4>
-              <p className="text-2xl font-bold text-blue-600">
+              <h4 className="font-medium text-xs text-muted-foreground">Cierre Existente</h4>
+              <p className="text-xl font-bold text-blue-600">
                 ${existingClosure.finalBalance.toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatTime(existingClosure.closedAt || existingClosure.createdAt)}
               </p>
-              <div className="text-xs text-blue-600 mt-1">
-                {existingClosure.cashCounted > 0 && `Efectivo: $${existingClosure.cashCounted.toLocaleString()}`}
-                {existingClosure.cardCounted > 0 && ` • Tarjeta: $${existingClosure.cardCounted.toLocaleString()}`}
-              </div>
             </div>
             <div className="text-center">
-              <h4 className="font-semibold text-sm text-muted-foreground">Nuevo Cierre</h4>
-              <p className="text-2xl font-bold text-green-600">
+              <h4 className="font-medium text-xs text-muted-foreground">Nuevo Cierre</h4>
+              <p className="text-xl font-bold text-green-600">
                 ${newClosureData.finalBalance.toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
                 Ahora
               </p>
-              <div className="text-xs text-green-600 mt-1">
-                {newClosureData.cashCounted > 0 && `Efectivo: $${newClosureData.cashCounted.toLocaleString()}`}
-                {newClosureData.cardCounted > 0 && ` • Tarjeta: $${newClosureData.cardCounted.toLocaleString()}`}
-              </div>
             </div>
           </div>
 
           {/* Recomendación */}
-          <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2 mb-1">
               <span className="text-blue-600">💡</span>
-              <span className="font-medium text-blue-900 dark:text-blue-100">
+              <span className="font-medium text-blue-900 dark:text-blue-100 text-sm">
                 Recomendación del sistema
               </span>
             </div>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+            <p className="text-xs text-blue-700 dark:text-blue-300">
               {recommendedAction === 'unify' 
                 ? 'Los cierres son muy cercanos en tiempo. Se recomienda unificar para mantener un registro limpio.'
                 : recommendedAction === 'multiple'
@@ -148,8 +140,8 @@ export function ClosureConflictDialog({
           </div>
 
           {/* Opciones de acción */}
-          <div className="space-y-3">
-            <h4 className="font-medium">Selecciona una acción:</h4>
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm">Selecciona una acción:</h4>
             
             {[
               { value: 'unify', icon: '🔗' },
@@ -159,14 +151,14 @@ export function ClosureConflictDialog({
             ].map((option) => (
               <div
                 key={option.value}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                   selectedAction === option.value
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setSelectedAction(option.value)}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <input
                     type="radio"
                     checked={selectedAction === option.value}
@@ -175,25 +167,22 @@ export function ClosureConflictDialog({
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{option.icon}</span>
-                      <span className="font-medium">
+                      <span className="text-sm">{option.icon}</span>
+                      <span className="font-medium text-sm">
                         {getActionDescription(option.value).title}
                       </span>
                       {option.value === recommendedAction && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
                           Recomendado
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {getActionDescription(option.value).description}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {getActionDescription(option.value).details}
-                    </p>
-                    <div className="mt-2">
-                      <span className={`text-sm font-semibold ${getActionDescription(option.value).color}`}>
-                        Balance resultante: {
+                    <div className="mt-1">
+                      <span className={`text-xs font-semibold ${getActionDescription(option.value).color}`}>
+                        Resultado: {
                           typeof getActionDescription(option.value).balance === 'number'
                             ? `$${getActionDescription(option.value).balance.toLocaleString()}`
                             : getActionDescription(option.value).balance
@@ -207,26 +196,27 @@ export function ClosureConflictDialog({
           </div>
 
           {/* Switch para recordar elección */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium">Recordar esta elección</span>
+              <CheckCircle className="h-3 w-3 text-green-500" />
+              <span className="text-xs font-medium">Recordar esta elección</span>
             </div>
             <Switch
               checked={rememberChoice}
               onCheckedChange={setRememberChoice}
+              className="scale-75"
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Si activas esta opción, el sistema aplicará automáticamente la misma acción en futuros conflictos similares.
+            El sistema aplicará automáticamente la misma acción en futuros conflictos similares.
           </p>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={onClose}>
+        <DialogFooter className="gap-2 pt-2">
+          <Button variant="ghost" onClick={onClose} size="sm">
             Cancelar
           </Button>
-          <Button onClick={handleConfirm} className="modern-button">
+          <Button onClick={handleConfirm} className="modern-button" size="sm">
             Confirmar Acción
           </Button>
         </DialogFooter>

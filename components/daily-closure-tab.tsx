@@ -21,6 +21,7 @@ export function DailyClosureTab() {
     closeDailyBalance,
     handleClosureConflict,
     getConflictRecommendation,
+    getClosureByDate,
     loading,
     activeWorkingDay,
     isExtendedHours,
@@ -296,11 +297,22 @@ export function DailyClosureTab() {
     }
 
     // Verificar si ya existe un cierre para esta fecha
+    console.log('🔍 Iniciando verificación de conflicto para fecha:', suggestions.suggestedDate)
     const existingClosure = await checkExistingClosure(suggestions.suggestedDate)
+    
+    console.log('🔍 Verificando conflicto:', {
+      date: suggestions.suggestedDate,
+      existingClosure,
+      status: existingClosure?.status,
+      shouldShowDialog: existingClosure && existingClosure.status === 'closed',
+      allClosures: dailyClosures.map(c => ({ date: c.date, status: c.status }))
+    })
     
     if (existingClosure && existingClosure.status === 'closed') {
       // Hay un conflicto, mostrar diálogo
       const recommendation = getConflictRecommendation(existingClosure)
+      console.log('⚠️ Conflicto detectado, mostrando diálogo:', recommendation)
+      
       setConflictData({
         existingClosure,
         newClosureData: {
@@ -311,6 +323,8 @@ export function DailyClosureTab() {
       })
       setShowConflictDialog(true)
       return
+    } else {
+      console.log('✅ No hay conflicto, procediendo con cierre normal')
     }
 
     // Si no hay conflicto, cerrar directamente
@@ -319,13 +333,7 @@ export function DailyClosureTab() {
 
   // Función para verificar si existe un cierre para una fecha
   const checkExistingClosure = async (dateStr: string) => {
-    // Buscar en el contexto local primero
-    const localClosure = dailyClosures.find(c => c.date === dateStr)
-    if (localClosure) return localClosure
-    
-    // Si no está en el contexto, intentar obtenerlo del servicio
-    // (esto requeriría exponer el servicio desde el contexto)
-    return null
+    return await getClosureByDate(dateStr)
   }
 
   const finalizeClosure = async (closureData: any, selectedDate: string) => {
@@ -353,8 +361,40 @@ export function DailyClosureTab() {
     }
   }
 
-  const handleDateSelected = (selectedDate: string) => {
+  const handleDateSelected = async (selectedDate: string) => {
     if (pendingClosure) {
+      console.log('📅 Fecha seleccionada:', selectedDate)
+      
+      // Verificar si ya existe un cierre para esta fecha
+      const existingClosure = await checkExistingClosure(selectedDate)
+      
+      console.log('🔍 Verificando conflicto para fecha seleccionada:', {
+        date: selectedDate,
+        existingClosure,
+        status: existingClosure?.status
+      })
+      
+      if (existingClosure && existingClosure.status === 'closed') {
+        // Hay un conflicto, mostrar diálogo
+        const recommendation = getConflictRecommendation(existingClosure)
+        console.log('⚠️ Conflicto detectado en fecha seleccionada:', recommendation)
+        
+        setConflictData({
+          existingClosure,
+          newClosureData: {
+            ...pendingClosure,
+            finalBalance: (pendingClosure.cashCounted + pendingClosure.cardCounted + pendingClosure.transferCounted) - pendingClosure.expenses.reduce((sum, e) => sum + e.amount, 0),
+            closureDate: selectedDate
+          },
+          recommendedAction: recommendation
+        })
+        setShowConflictDialog(true)
+        setShowDateSelector(false)
+        setPendingClosure(null)
+        return
+      }
+      
+      // Si no hay conflicto, proceder normalmente
       finalizeClosure(pendingClosure, selectedDate)
     }
   }
