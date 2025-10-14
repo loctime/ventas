@@ -471,7 +471,7 @@ export function DailyClosureTab() {
                 💡 <strong>Forzar Inicio:</strong> Inicia un nuevo día comercial
               </p>
               <p className="text-orange-600 dark:text-orange-400">
-                ⚠️ <strong>Cancelar Cierre:</strong> Restaura los datos para editarlos nuevamente
+                ⚠️ <strong>Cancelar Cierre:</strong> Elimina el cierre del historial y reinicia el formulario
               </p>
             </div>
           </div>
@@ -484,18 +484,6 @@ export function DailyClosureTab() {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        {/* Mensaje de datos restaurados */}
-        {showRestoredMessage && (
-          <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                ✅ Datos restaurados - Puedes editar el cierre nuevamente
-              </span>
-            </div>
-          </div>
-        )}
-        
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold big-number">Cierre del Día </h2>

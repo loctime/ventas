@@ -412,38 +412,29 @@ export function FirestoreCashflowProvider({ children }: { children: React.ReactN
         throw new Error('Función deleteDailyClosure no disponible. Por favor, recarga la página.')
       }
       
-      // Obtener los datos del cierre antes de eliminarlo para restaurarlos
-      const closureToRestore = todayClosure
-      
       // Eliminar el cierre del día de Firestore
       await firestoreService.deleteDailyClosure(closureDate)
       
-      // Actualizar el estado local
+      // Actualizar el estado local - remover de la lista de cierres
       setDailyClosures(prev => prev.filter(c => c.date !== closureDate))
       
-      // Restaurar el cierre como "abierto" para permitir edición
-      if (closureToRestore) {
-        const restoredClosure = {
-          ...closureToRestore,
-          status: 'open' as const,
-          closedAt: undefined
-        }
-        setTodayClosure(restoredClosure)
-      }
+      // Establecer el cierre actual a null (no restaurar)
+      // Esto evita que el auto-guardado vuelva a crear el cierre
+      setTodayClosure(null)
       
-      // Forzar recálculo del día activo para asegurar que se muestre el formulario de cierre
+      // Forzar recálculo del día activo para asegurar que se muestre el formulario de cierre vacío
       const newDay = getBusinessDay(businessDayCutoff)
       setActiveWorkingDay(newDay)
       
       console.log('✅ Cierre cancelado para:', closureDate)
-      console.log('✅ Datos restaurados para edición')
+      console.log('✅ Formulario reseteado')
       console.log('✅ Día activo actualizado a:', newDay)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cancelar cierre'
       setError(errorMessage)
       throw new Error(errorMessage)
     }
-  }, [firestoreService, businessDayCutoff, todayClosure])
+  }, [firestoreService, businessDayCutoff])
 
   const value = {
     collections,
