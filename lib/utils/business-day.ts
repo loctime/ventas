@@ -8,6 +8,16 @@ export interface BusinessDayConfig {
 }
 
 /**
+ * Obtiene la fecha local en formato YYYY-MM-DD (sin conversión a UTC)
+ */
+function getLocalDateString(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
  * Obtiene el día comercial basado en hora de corte
  */
 export function getBusinessDay(cutoffHour: number = 4): string {
@@ -16,17 +26,17 @@ export function getBusinessDay(cutoffHour: number = 4): string {
   
   // Durante horario de trabajo normal (6:00 AM a 10:00 PM), siempre usar día actual
   if (currentHour >= 6 && currentHour <= 22) {
-    return now.toISOString().split('T')[0]
+    return getLocalDateString(now)
   }
   
   // Solo en horario nocturno (10:00 PM a 6:00 AM) usar la lógica de corte
   if (currentHour < cutoffHour) {
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
-    return yesterday.toISOString().split('T')[0]
+    return getLocalDateString(yesterday)
   }
   
-  return now.toISOString().split('T')[0]
+  return getLocalDateString(now)
 }
 
 /**
@@ -58,14 +68,14 @@ export function getClosureDateSuggestions(cutoffHour: number = 4): {
 } {
   const now = new Date()
   const currentHour = now.getHours()
-  const calendarDay = now.toISOString().split('T')[0]
+  const calendarDay = getLocalDateString(now)
   const businessDay = getBusinessDay(cutoffHour)
   const afterMidnight = isAfterMidnight()
   
   // Calcular día anterior (para opción alternativa)
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = yesterday.toISOString().split('T')[0]
+  const yesterdayStr = getLocalDateString(yesterday)
   
   // Caso 1: Horario de trabajo normal (6:00 AM a 10:00 PM) - Solo hay una opción lógica
   if (currentHour >= 6 && currentHour <= 22) {
