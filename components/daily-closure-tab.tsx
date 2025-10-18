@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "./ui/button"
-import { AlertCircle, CheckCircle, Save } from "lucide-react"
+import { AlertCircle, CheckCircle, Save, Loader2 } from "lucide-react"
 import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
 import type { DailyExpense } from "@/lib/types"
 import { ClosureDateSelectorDialog } from "./closure-date-selector-dialog"
@@ -14,6 +14,7 @@ import { DailyIncomeSection } from "./daily-income-section"
 import { DailyExpensesSection } from "./daily-expenses-section"
 import { VerificationSection } from "./verification-section"
 import { ClosureSummary } from "./closure-summary"
+import { Card } from "./ui/card"
 
 export function DailyClosureTab() {
   const { 
@@ -45,6 +46,7 @@ export function DailyClosureTab() {
   const [saving, setSaving] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Estados para diálogos
@@ -309,6 +311,34 @@ export function DailyClosureTab() {
     })
   }
 
+  // Handler optimizado para cancelar cierre
+  const handleCancelClosure = async () => {
+    if (!todayClosure) return
+    
+    setIsCancelling(true)
+    
+    // Cargar datos de forma optimista para que sea instantáneo
+    setCashCounted(todayClosure.cashCounted)
+    setCardCounted(todayClosure.cardCounted)
+    setTransferCounted(todayClosure.transferCounted)
+    setExpenses(todayClosure.expenses)
+    setNote(todayClosure.note || "")
+    
+    try {
+      await cancelDayClosure(todayClosure.date)
+    } catch (error) {
+      // Si falla, limpiar los datos
+      setCashCounted(0)
+      setCardCounted(0)
+      setTransferCounted(0)
+      setExpenses([])
+      setNote("")
+      throw error
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
   // Vista de día cerrado
   if (todayClosure?.status === 'closed') {
     return (
@@ -316,8 +346,25 @@ export function DailyClosureTab() {
         closure={todayClosure}
         businessDayCutoff={businessDayCutoff}
         onForceStart={forceStartNewDay}
-        onCancelClosure={() => cancelDayClosure(todayClosure.date)}
+        onCancelClosure={handleCancelClosure}
       />
+    )
+  }
+
+  // Vista de carga mientras se cancela el cierre
+  if (isCancelling) {
+    return (
+      <div className="space-y-4">
+        <Card className="modern-card p-12">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-16 w-16 mx-auto animate-spin text-blue-500" />
+            <h3 className="text-xl font-semibold">Restaurando datos del cierre...</h3>
+            <p className="text-sm text-muted-foreground">
+              Cargando efectivo, tarjeta, transferencias y gastos
+            </p>
+          </div>
+        </Card>
+      </div>
     )
   }
 

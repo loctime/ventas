@@ -1,8 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { Card } from "./ui/card"
 import { Button } from "./ui/button"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, Loader2 } from "lucide-react"
 import { formatDateLong } from "@/lib/utils/business-day"
 import type { DailyClosure } from "@/lib/types"
 
@@ -19,6 +20,8 @@ export function ClosedDayView({
   onForceStart,
   onCancelClosure 
 }: ClosedDayViewProps) {
+  const [isLoadingCancel, setIsLoadingCancel] = useState(false)
+  const [isLoadingForce, setIsLoadingForce] = useState(false)
   const formatDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-').map(Number)
     const date = new Date(year, month - 1, day)
@@ -61,6 +64,7 @@ export function ClosedDayView({
 
   const handleForceStart = async () => {
     if (confirm('¿Estás seguro de iniciar un nuevo día? Esto cambiará al día comercial actual.')) {
+      setIsLoadingForce(true)
       try {
         await onForceStart()
         console.log('✅ Nuevo día iniciado exitosamente')
@@ -68,20 +72,28 @@ export function ClosedDayView({
         console.error('Error al forzar inicio:', error)
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
         alert(`Error al iniciar nuevo día: ${errorMessage}`)
+      } finally {
+        setIsLoadingForce(false)
       }
     }
   }
 
   const handleCancelClosure = async () => {
-    if (confirm('⚠️ ADVERTENCIA: Esto eliminará el cierre del día del historial y permitirá editarlo nuevamente. ¿Estás seguro?')) {
+    if (confirm('⚠️ ADVERTENCIA: Esto reabrirá el cierre para que puedas editarlo nuevamente. Todos los datos se conservarán. ¿Estás seguro?')) {
+      setIsLoadingCancel(true)
       try {
         await onCancelClosure()
         console.log('✅ Cierre cancelado exitosamente')
+        // Mantener el loader un poco más para que se carguen los datos
+        setTimeout(() => setIsLoadingCancel(false), 1000)
       } catch (error) {
         console.error('Error al cancelar cierre:', error)
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
         alert(`Error al cancelar cierre: ${errorMessage}`)
+        setIsLoadingCancel(false)
       }
+    } else {
+      setIsLoadingCancel(false)
     }
   }
 
@@ -136,15 +148,31 @@ export function ClosedDayView({
               onClick={handleForceStart}
               variant="outline"
               className="modern-button"
+              disabled={isLoadingForce || isLoadingCancel}
             >
-              🚀 Forzar Inicio
+              {isLoadingForce ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Iniciando...
+                </>
+              ) : (
+                <>🚀 Forzar Inicio</>
+              )}
             </Button>
             <Button 
               onClick={handleCancelClosure}
               variant="destructive"
               className="modern-button"
+              disabled={isLoadingCancel || isLoadingForce}
             >
-              ⚠️ Cancelar Cierre
+              {isLoadingCancel ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Cargando datos...
+                </>
+              ) : (
+                <>⚠️ Cancelar Cierre</>
+              )}
             </Button>
           </div>
           
@@ -158,7 +186,7 @@ export function ClosedDayView({
               💡 <strong>Forzar Inicio:</strong> Inicia un nuevo día comercial
             </p>
             <p className="text-orange-600 dark:text-orange-400">
-              ⚠️ <strong>Cancelar Cierre:</strong> Elimina el cierre del historial y reinicia el formulario
+              ⚠️ <strong>Cancelar Cierre:</strong> Reabre el cierre conservando todos los datos para edición
             </p>
           </div>
         </div>
