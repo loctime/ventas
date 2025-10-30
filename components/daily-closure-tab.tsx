@@ -12,7 +12,6 @@ import { useFrequentExpenses } from "@/hooks/use-frequent-expenses"
 import { ClosedDayView } from "./closed-day-view"
 import { DailyIncomeSection } from "./daily-income-section"
 import { DailyExpensesSection } from "./daily-expenses-section"
-import { VerificationSection } from "./verification-section"
 import { ClosureSummary } from "./closure-summary"
 import { Card } from "./ui/card"
 
@@ -77,13 +76,11 @@ export function DailyClosureTab() {
     .filter(t => t.category === 'Transferencia' || t.category === 'transfer')
     .reduce((sum, t) => sum + t.amount, 0)
   
-  const registeredTotal = registeredCollections.reduce((sum, t) => sum + t.amount, 0)
   const registeredExpenses = registeredPayments.reduce((sum, t) => sum + t.amount, 0)
 
   // Calcular totales del cierre
   const totalCounted = cashCounted + cardCounted + transferCounted
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
-  const difference = totalCounted - registeredTotal
   
   // Calcular balance final
   const finalBalance = todayClosure?.status === 'closed' 
@@ -429,14 +426,7 @@ export function DailyClosureTab() {
         onQuickExpense={handleQuickExpense}
       />
 
-      {/* Verificación */}
-      <VerificationSection
-        registeredTotal={registeredTotal}
-        totalCounted={totalCounted}
-        difference={difference}
-        note={note}
-        onNoteChange={setNote}
-      />
+      {/* Verificación oculta */}
 
       {/* Resumen final */}
       <ClosureSummary

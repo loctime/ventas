@@ -237,47 +237,7 @@ export function HistoryTab() {
           )}
         </Card>
 
-        {/* Verificación */}
-        {selectedClosure.workModeTotal > 0 && (
-          <Card className="modern-card p-6 scale-hover">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="floating-icon">📊</span>
-              Verificación
-            </h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Ventas registradas:</span>
-                <span className="font-semibold">${selectedClosure.workModeTotal.toLocaleString('es-AR')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Conteo real:</span>
-                <span className="font-semibold">${selectedClosure.totalCounted.toLocaleString('es-AR')}</span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="font-semibold">Diferencia:</span>
-                <div className="flex items-center gap-2">
-                  {selectedClosure.difference !== 0 && (
-                    <AlertCircle className={`h-4 w-4 ${selectedClosure.difference < 0 ? 'text-red-500' : 'text-yellow-500'}`} />
-                  )}
-                  <span className={`font-bold ${
-                    selectedClosure.difference < 0 ? 'text-red-600' : 
-                    selectedClosure.difference > 0 ? 'text-yellow-600' : 
-                    'text-green-600'
-                  }`}>
-                    {selectedClosure.difference >= 0 ? '+' : ''}${selectedClosure.difference.toLocaleString('es-AR')}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            {selectedClosure.note && (
-              <div className="mt-4 p-3 bg-muted rounded-lg">
-                <p className="text-sm font-medium mb-1">Nota:</p>
-                <p className="text-sm text-muted-foreground">{selectedClosure.note}</p>
-              </div>
-            )}
-          </Card>
-        )}
+        {/* Verificación oculta */}
 
         {/* Balance final */}
         <Card className="modern-card p-6 bg-gradient-to-br from-green-50 to-blue-50 scale-hover">
@@ -438,17 +398,7 @@ export function HistoryTab() {
                                     </div>
                                   </div>
 
-                                  {day.closure.difference !== 0 && (
-                                    <div className="mt-2 pt-2 border-t flex items-center gap-2 text-xs">
-                                      <AlertCircle className={`h-3 w-3 ${day.closure.difference < 0 ? 'text-red-500' : 'text-yellow-500'}`} />
-                                      <span className="text-muted-foreground">
-                                        Diferencia: 
-                                        <span className={`font-semibold ml-1 ${day.closure.difference < 0 ? 'text-red-600' : 'text-yellow-600'}`}>
-                                          {day.closure.difference >= 0 ? '+' : ''}${day.closure.difference.toLocaleString('es-AR')}
-                                        </span>
-                                      </span>
-                                    </div>
-                                  )}
+                                  {/* Diferencia oculta */}
                                 </Card>
                               ))}
                             </div>
