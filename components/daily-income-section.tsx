@@ -29,13 +29,13 @@ export function DailyIncomeSection({
   const totalCounted = cashCounted + cardCounted + transferCounted
 
   return (
-    <Card className="modern-card p-6 scale-hover">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+    <Card className="modern-card p-4 scale-hover">
+      <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
         <span className="floating-icon">💰</span>
         Ingresos del Día
       </h3>
       
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <label className="text-sm font-medium">💵 Efectivo</label>
           <Input

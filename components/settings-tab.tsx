@@ -77,13 +77,13 @@ export function SettingsTab() {
   const hours = Array.from({ length: 12 }, (_, i) => i)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div>
         <h2 className="text-2xl font-bold big-number">Configuración</h2>
         <p className="text-muted-foreground">Personaliza el funcionamiento del sistema</p>
       </div>
 
-      <Card className="modern-card p-6 scale-hover">
+      <Card className="modern-card p-4 scale-hover">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary floating-icon" />
           Horario de Cambio de Día

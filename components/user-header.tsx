@@ -42,7 +42,7 @@ export function UserHeader({ showInstallButton, onInstallClick, onBackClick }: U
 
   return (
     <header className="glass-header sticky top-0 z-40">
-      <div className="container max-w-4xl mx-auto px-4 py-4">
+      <div className="container max-w-4xl mx-auto px-4 py-2">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             {onBackClick && (

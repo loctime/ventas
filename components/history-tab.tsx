@@ -177,7 +177,7 @@ export function HistoryTab({
 
   if (selectedClosure) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {/* Balance del día */}
         <Card className="modern-card p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
           <div className="flex justify-between items-center">
@@ -267,7 +267,7 @@ export function HistoryTab({
 
   // Vista principal del historial
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div>
         <h2 className="text-2xl font-bold big-number">Historial de Cierres</h2>
         <p className="text-muted-foreground">Organizado por mes, semana y día</p>
@@ -290,7 +290,7 @@ export function HistoryTab({
       )}
 
       {!loading && groupedData.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {groupedData.map((month) => (
             <Collapsible key={month.monthKey} defaultOpen={groupedData.indexOf(month) === 0}>
               <Card className="modern-card overflow-hidden scale-hover">

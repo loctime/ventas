@@ -367,7 +367,7 @@ export function DailyClosureTab() {
 
   // Vista principal de cierre
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Header */}
       <div>
         <div className="flex items-center justify-between">
