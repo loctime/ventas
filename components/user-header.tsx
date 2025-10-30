@@ -11,15 +11,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { InstallButton } from "@/components/install-button"
 import { useAuth } from "@/contexts/auth-context"
-import { LogOut, User, Database } from "lucide-react"
+import { LogOut, User, Database, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface UserHeaderProps {
   showInstallButton?: boolean
   onInstallClick?: () => void
+  onBackClick?: () => void
 }
 
-export function UserHeader({ showInstallButton, onInstallClick }: UserHeaderProps) {
+export function UserHeader({ showInstallButton, onInstallClick, onBackClick }: UserHeaderProps) {
   const { user, logout } = useAuth()
   const router = useRouter()
 
@@ -43,9 +44,17 @@ export function UserHeader({ showInstallButton, onInstallClick }: UserHeaderProp
     <header className="glass-header sticky top-0 z-40">
       <div className="container max-w-4xl mx-auto px-4 py-4">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
+          <div className="flex items-center gap-3 flex-1">
+            {onBackClick && (
+              <Button
+                variant="ghost"
+                onClick={onBackClick}
+                className="h-8 w-8 p-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <h1 className="text-2xl font-bold text-balance">ControlVentas <span className="text-sm text-muted-foreground">Flujo de Caja</span></h1>
-            
           </div>
           
           <div className="flex items-center gap-2">

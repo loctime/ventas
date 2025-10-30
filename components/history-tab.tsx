@@ -45,9 +45,21 @@ interface MonthGroup {
   totalBalance: number
 }
 
-export function HistoryTab() {
+interface HistoryTabProps {
+  selectedClosure?: DailyClosure | null
+  onSelectedClosureChange?: (closure: DailyClosure | null) => void
+}
+
+export function HistoryTab({ 
+  selectedClosure: selectedClosureProp, 
+  onSelectedClosureChange: onSelectedClosureChangeProp 
+}: HistoryTabProps = {}) {
   const { dailyClosures, loading } = useFirestoreCashflow()
-  const [selectedClosure, setSelectedClosure] = useState<DailyClosure | null>(null)
+  const [internalSelectedClosure, setInternalSelectedClosure] = useState<DailyClosure | null>(null)
+  
+  // Usar props externas si están disponibles, si no usar estado interno
+  const selectedClosure = selectedClosureProp !== undefined ? selectedClosureProp : internalSelectedClosure
+  const setSelectedClosure = onSelectedClosureChangeProp || setInternalSelectedClosure
 
   const formatDate = (dateStr: string) => {
     // Parsear la fecha correctamente para evitar problemas de zona horaria
@@ -165,89 +177,90 @@ export function HistoryTab() {
 
   if (selectedClosure) {
     return (
-      <div className="space-y-4">
-        {/* Header */}
-        <Button 
-          variant="ghost" 
-          onClick={() => setSelectedClosure(null)}
-          className="mb-2 modern-button"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Button>
-
-        <div>
-          <h2 className="text-2xl font-bold capitalize big-number">{formatDate(selectedClosure.date)}</h2>
-          <p className="text-muted-foreground">
-            {selectedClosure.status === 'closed' ? 'Día cerrado' : 'Día abierto'}
-          </p>
-        </div>
-
-        {/* Ingresos detallados */}
-        <Card className="modern-card pt-3 px-6 pb-6 scale-hover">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span className="floating-icon">💰</span>
-            Ingresos del Día
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">💵 Efectivo:</span>
-              <span className="font-semibold">${selectedClosure.cashCounted.toLocaleString('es-AR')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">💳 Tarjeta:</span>
-              <span className="font-semibold">${selectedClosure.cardCounted.toLocaleString('es-AR')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">🏦 Transferencias:</span>
-              <span className="font-semibold">${selectedClosure.transferCounted.toLocaleString('es-AR')}</span>
-            </div>
-            <div className="flex justify-between pt-2 border-t font-semibold">
-              <span>Total Ingresos:</span>
-              <span className="success-gradient">${selectedClosure.totalCounted.toLocaleString('es-AR')}</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Gastos */}
-        <Card className="modern-card p-6 scale-hover">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span className="floating-icon">📝</span>
-            Gastos del Día
-          </h3>
-          {selectedClosure.expenses.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-2">
-              No se registraron gastos
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {selectedClosure.expenses.map((expense) => (
-                <div key={expense.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span>{expense.description}</span>
-                  <span className="font-semibold text-red-600">
-                    -${expense.amount.toLocaleString('es-AR')}
-                  </span>
-                </div>
-              ))}
-              <div className="flex justify-between pt-2 border-t font-semibold">
-                <span>Total Gastos:</span>
-                <span className="danger-gradient">${selectedClosure.totalExpenses.toLocaleString('es-AR')}</span>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Verificación oculta */}
-
-        {/* Balance final */}
-        <Card className="modern-card p-6 bg-gradient-to-br from-green-50 to-blue-50 scale-hover">
+      <div className="space-y-3">
+        {/* Balance del día */}
+        <Card className="modern-card p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-bold">Balance del Día</h3>
-            <div className="text-3xl font-bold success-gradient">
+            <div>
+              <h3 className="text-sm font-bold">Balance del Día</h3>
+              <p className="text-[10px] text-muted-foreground capitalize">{formatDate(selectedClosure.date)}</p>
+            </div>
+            <div className="text-2xl font-bold text-green-600">
               ${selectedClosure.finalBalance.toLocaleString('es-AR')}
             </div>
           </div>
         </Card>
+
+        {/* Ingresos y Gastos en 2 columnas ultra compactas */}
+        <div className="grid grid-cols-2 gap-1.5">
+          {/* Columna 1: Ingresos */}
+          <Card className="modern-card overflow-hidden">
+            <div className="bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950 p-2 border-b">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xl">💰</span>
+                <h3 className="text-sm font-bold">Ingresos</h3>
+              </div>
+            </div>
+            <div className="p-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-base">💵</span>
+                <span className="font-bold text-sm">${selectedClosure.cashCounted.toLocaleString('es-AR')}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-base">💳</span>
+                <span className="font-bold text-sm">${selectedClosure.cardCounted.toLocaleString('es-AR')}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-base">🏦</span>
+                <span className="font-bold text-sm">${selectedClosure.transferCounted.toLocaleString('es-AR')}</span>
+              </div>
+            </div>
+            <div className="bg-green-50 dark:bg-green-950/30 border-t px-2 py-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs">Total:</span>
+                <span className="font-extrabold text-base text-green-600">
+                  ${selectedClosure.totalCounted.toLocaleString('es-AR')}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Columna 2: Gastos */}
+          <Card className="modern-card overflow-hidden">
+            <div className="bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-950 dark:to-orange-950 p-2 border-b">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xl">📝</span>
+                <h3 className="text-sm font-bold">Gastos</h3>
+              </div>
+            </div>
+            {selectedClosure.expenses.length === 0 ? (
+              <div className="p-4">
+                <p className="text-xs text-muted-foreground text-center">
+                  Sin gastos
+                </p>
+              </div>
+            ) : (
+              <div className="p-2 space-y-1 max-h-[150px] overflow-y-auto">
+                {selectedClosure.expenses.map((expense) => (
+                  <div key={expense.id} className="flex items-center justify-between gap-1 text-xs">
+                    <span className="text-muted-foreground truncate">{expense.description}</span>
+                    <span className="font-bold text-red-600 whitespace-nowrap">
+                      -${expense.amount.toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="bg-red-50 dark:bg-red-950/30 border-t px-2 py-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs">Total:</span>
+                <span className="font-extrabold text-base text-red-600">
+                  ${selectedClosure.totalExpenses.toLocaleString('es-AR')}
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     )
   }

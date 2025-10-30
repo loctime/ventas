@@ -98,99 +98,105 @@ export function ClosedDayView({
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="modern-card p-6 scale-hover">
-        <div className="text-center space-y-4">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto floating-icon" />
-          <h2 className="text-2xl font-bold big-number">Día Cerrado</h2>
-          
-          {/* Información del día cerrado */}
-          <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-            <p className="text-green-900 dark:text-green-100 font-medium">
-              Día cerrado: {formatDate(closure.date)}
-            </p>
-            <p className="text-green-700 dark:text-green-300 text-sm mt-1">
-              {formatDateLong(closure.date)}
+    <div className="space-y-3">
+      {/* Header compacto */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <div>
+            <h2 className="text-lg md:text-xl font-bold">Día Cerrado</h2>
+            <p className="text-xs text-muted-foreground capitalize">
+              {formatDate(closure.date)}
             </p>
           </div>
-          
-          {/* Balance del día */}
-          <div className="pt-4">
-            <div className="text-4xl font-bold success-gradient">
-              ${finalBalance.toLocaleString('es-AR')}
-            </div>
-            <p className="text-sm text-muted-foreground">Balance del día</p>
-          </div>
-          
-          {/* Información del próximo día */}
-          <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-blue-900 dark:text-blue-100 font-medium">
-              Próximo día comercial
-            </p>
-            <p className="text-blue-700 dark:text-blue-300 text-sm mt-1">
-              {nextDayInfo.message}
-            </p>
-            <p className="text-blue-600 dark:text-blue-400 text-xs mt-2">
-              {nextDayInfo.nextDayStart.toLocaleDateString('es-ES', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })} a las {nextDayInfo.nextDayStart.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
+        </div>
+      </div>
+
+      {/* Resumen de ingresos y gastos */}
+      <Card className="modern-card p-4 scale-hover">
+        <div className="grid grid-cols-2 gap-4 mb-3 pb-3 border-b">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Total Ingresos</p>
+            <p className="text-lg font-bold text-green-600">
+              ${closure.totalCounted.toLocaleString('es-AR')}
             </p>
           </div>
-          
-          {/* Botones de acción */}
-          <div className="flex gap-3 justify-center pt-4">
-            <Button 
-              onClick={handleForceStart}
-              variant="outline"
-              className="modern-button"
-              disabled={isLoadingForce || isLoadingCancel}
-            >
-              {isLoadingForce ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Iniciando...
-                </>
-              ) : (
-                <>🚀 Forzar Inicio</>
-              )}
-            </Button>
-            <Button 
-              onClick={handleCancelClosure}
-              variant="destructive"
-              className="modern-button"
-              disabled={isLoadingCancel || isLoadingForce}
-            >
-              {isLoadingCancel ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Cargando datos...
-                </>
-              ) : (
-                <>⚠️ Cancelar Cierre</>
-              )}
-            </Button>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Total Gastos</p>
+            <p className="text-lg font-bold text-red-600">
+              ${closure.totalExpenses.toLocaleString('es-AR')}
+            </p>
           </div>
-          
-          <p className="text-xs text-muted-foreground mt-4">
-            Los cambios al día cerrado requieren confirmación adicional
+        </div>
+        
+        {/* Balance final destacado */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground mb-1">Balance del Día</p>
+          <p className="text-2xl md:text-3xl font-bold text-blue-600">
+            ${finalBalance.toLocaleString('es-AR')}
           </p>
-          
-          {/* Mensaje informativo sobre las acciones */}
-          <div className="text-xs text-center space-y-1 mt-2">
-            <p className="text-blue-600 dark:text-blue-400">
-              💡 <strong>Forzar Inicio:</strong> Inicia un nuevo día comercial
+        </div>
+      </Card>
+
+      {/* Información del próximo día compacta */}
+      <Card className="modern-card p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-2">
+          <span className="text-lg">📅</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-0.5">
+              Próximo día
             </p>
-            <p className="text-orange-600 dark:text-orange-400">
-              ⚠️ <strong>Cancelar Cierre:</strong> Reabre el cierre conservando todos los datos para edición
+            <p className="text-xs text-blue-700 dark:text-blue-300 line-clamp-2">
+              {nextDayInfo.message}
             </p>
           </div>
         </div>
       </Card>
+
+      {/* Botones de acción compactos */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button 
+          onClick={handleForceStart}
+          variant="outline"
+          className="modern-button text-sm"
+          disabled={isLoadingForce || isLoadingCancel}
+        >
+          {isLoadingForce ? (
+            <>
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              Iniciando...
+            </>
+          ) : (
+            <>
+              <span className="mr-1">🚀</span>
+              Forzar Inicio
+            </>
+          )}
+        </Button>
+        <Button 
+          onClick={handleCancelClosure}
+          variant="destructive"
+          className="modern-button text-sm"
+          disabled={isLoadingCancel || isLoadingForce}
+        >
+          {isLoadingCancel ? (
+            <>
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              Cargando...
+            </>
+          ) : (
+            <>
+              <span className="mr-1">⚠️</span>
+              Cancelar Cierre
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Nota informativa */}
+      <p className="text-xs text-center text-muted-foreground">
+        Los cambios requieren confirmación adicional
+      </p>
     </div>
   )
 }

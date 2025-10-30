@@ -10,12 +10,14 @@ import { UserHeader } from "@/components/user-header"
 import { useAuth } from "@/contexts/auth-context"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { DollarSign, History, Settings } from "lucide-react"
+import type { DailyClosure } from "@/lib/types"
 
 type Tab = "closure" | "history" | "settings"
 
 export default function CashflowApp() {
   const { user, loading } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>("closure")
+  const [selectedClosure, setSelectedClosure] = useState<DailyClosure | null>(null)
   const { isInstallable, isInstalled, installPWA } = usePWAInstall()
 
   const handleInstallClick = async () => {
@@ -46,12 +48,13 @@ export default function CashflowApp() {
         <UserHeader 
           showInstallButton={!isInstalled && isInstallable}
           onInstallClick={handleInstallClick}
+          onBackClick={selectedClosure ? () => setSelectedClosure(null) : undefined}
         />
 
         {/* Main Content */}
         <main className="flex-1 container max-w-4xl mx-auto px-4 py-6 pb-28">
           {activeTab === "closure" && <DailyClosureTab />}
-          {activeTab === "history" && <HistoryTab />}
+          {activeTab === "history" && <HistoryTab selectedClosure={selectedClosure} onSelectedClosureChange={setSelectedClosure} />}
           {activeTab === "settings" && <SettingsTab />}
         </main>
 
