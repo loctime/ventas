@@ -180,7 +180,7 @@ export function HistoryTab({
 
   if (selectedClosure) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2 pb-24">
         {/* Balance del día */}
         <Card className="modern-card p-0 gap-0 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
           <div className="p-3">
