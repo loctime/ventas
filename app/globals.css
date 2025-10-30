@@ -135,6 +135,19 @@
     background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
     min-height: 100vh;
   }
+  /* Tipografía fluida base para encabezados */
+  h1 {
+    font-size: clamp(1.5rem, 2.5vw + 1rem, 2.25rem);
+    line-height: 1.2;
+  }
+  h2 {
+    font-size: clamp(1.25rem, 2vw + 0.75rem, 1.875rem);
+    line-height: 1.25;
+  }
+  /* Asegurar que el scroll posicione el contenido sobre la barra inferior fija */
+  html {
+    scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6rem);
+  }
 }
 
 /* Modern 3D Components */
@@ -199,6 +212,8 @@
     background-clip: text;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     font-weight: 800;
+    font-size: clamp(1.5rem, 3.5vw + 0.5rem, 2rem);
+    line-height: 1.2;
   }
 
   .floating-icon {
@@ -224,6 +239,8 @@
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-bottom: none;
+    /* Asegurar área segura en iOS con notch */
+    padding-bottom: env(safe-area-inset-bottom);
     box-shadow: 
       0 -4px 20px rgba(0, 0, 0, 0.08),
       0 -1px 3px rgba(0, 0, 0, 0.1);

@@ -49,7 +49,7 @@ export default function CashflowApp() {
         />
 
         {/* Main Content */}
-        <main className="flex-1 container max-w-4xl mx-auto px-4 py-6">
+        <main className="flex-1 container max-w-4xl mx-auto px-4 py-6 pb-28">
           {activeTab === "closure" && <DailyClosureTab />}
           {activeTab === "history" && <HistoryTab />}
           {activeTab === "settings" && <SettingsTab />}
