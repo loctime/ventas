@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useFirestoreCashflow } from "@/contexts/firestore-cashflow-context"
 import { formatCurrency } from "@/lib/utils/firestore-calculations"
 import { Card } from "@/components/ui/card"
@@ -60,6 +60,9 @@ export function HistoryTab({
   // Usar props externas si están disponibles, si no usar estado interno
   const selectedClosure = selectedClosureProp !== undefined ? selectedClosureProp : internalSelectedClosure
   const setSelectedClosure = onSelectedClosureChangeProp || setInternalSelectedClosure
+
+  const monthRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const weekRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const formatDate = (dateStr: string) => {
     // Parsear la fecha correctamente para evitar problemas de zona horaria
@@ -179,7 +182,8 @@ export function HistoryTab({
     return (
       <div className="space-y-2">
         {/* Balance del día */}
-        <Card className="modern-card p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
+        <Card className="modern-card p-0 gap-0 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
+          <div className="p-3">
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-sm font-bold">Balance del Día</h3>
@@ -189,12 +193,13 @@ export function HistoryTab({
               ${selectedClosure.finalBalance.toLocaleString('es-AR')}
             </div>
           </div>
+          </div>
         </Card>
 
         {/* Ingresos y Gastos en 2 columnas ultra compactas */}
         <div className="grid grid-cols-2 gap-1.5">
           {/* Columna 1: Ingresos */}
-          <Card className="modern-card overflow-hidden">
+          <Card className="modern-card overflow-hidden p-0 gap-0">
             <div className="bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950 p-2 border-b">
               <div className="flex items-center gap-1.5">
                 <span className="text-xl">💰</span>
@@ -226,7 +231,7 @@ export function HistoryTab({
           </Card>
 
           {/* Columna 2: Gastos */}
-          <Card className="modern-card overflow-hidden">
+          <Card className="modern-card overflow-hidden p-0 gap-0">
             <div className="bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-950 dark:to-orange-950 p-2 border-b">
               <div className="flex items-center gap-1.5">
                 <span className="text-xl">📝</span>
@@ -292,8 +297,23 @@ export function HistoryTab({
       {!loading && groupedData.length > 0 && (
         <div className="space-y-2">
           {groupedData.map((month) => (
-            <Collapsible key={month.monthKey} defaultOpen={groupedData.indexOf(month) === 0}>
-              <Card className="modern-card overflow-hidden scale-hover">
+            <Collapsible 
+              key={month.monthKey} 
+              defaultOpen={groupedData.indexOf(month) === 0}
+              onOpenChange={(open) => {
+                if (open) {
+                  const el = monthRefs.current[month.monthKey]
+                  if (el) {
+                    requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+                  }
+                }
+              }}
+            >
+              <Card 
+                ref={(el) => { monthRefs.current[month.monthKey] = el }} 
+                style={{ scrollMarginTop: 80 }}
+                className="modern-card overflow-hidden scale-hover"
+              >
                 <CollapsibleTrigger className="w-full">
                   <div className="p-4 hover:bg-accent transition-colors">
                     <div className="flex items-center justify-between">
@@ -336,8 +356,23 @@ export function HistoryTab({
                 <CollapsibleContent>
                   <div className="border-t bg-muted/30 p-4 space-y-3">
                     {month.weeks.map((week) => (
-                      <Collapsible key={`${month.monthKey}-week-${week.weekNumber}`}>
-                        <Card className="modern-card overflow-hidden scale-hover">
+                      <Collapsible 
+                        key={`${month.monthKey}-week-${week.weekNumber}`}
+                        onOpenChange={(open) => {
+                          if (open) {
+                            const key = `${month.monthKey}-week-${week.weekNumber}`
+                            const el = weekRefs.current[key]
+                            if (el) {
+                              requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+                            }
+                          }
+                        }}
+                      >
+                        <Card 
+                          ref={(el) => { weekRefs.current[`${month.monthKey}-week-${week.weekNumber}`] = el }}
+                          style={{ scrollMarginTop: 80 }}
+                          className="modern-card overflow-hidden scale-hover"
+                        >
                           <CollapsibleTrigger className="w-full">
                             <div className="p-3 hover:bg-white/50 transition-colors">
                               <div className="flex items-center justify-between">

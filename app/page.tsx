@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DailyClosureTab } from "@/components/daily-closure-tab"
 import { HistoryTab } from "@/components/history-tab"
 import { SettingsTab } from "@/components/settings-tab"
@@ -19,6 +19,7 @@ export default function CashflowApp() {
   const [activeTab, setActiveTab] = useState<Tab>("closure")
   const [selectedClosure, setSelectedClosure] = useState<DailyClosure | null>(null)
   const { isInstallable, isInstalled, installPWA } = usePWAInstall()
+  const [isScrolling, setIsScrolling] = useState(false)
 
   const handleInstallClick = async () => {
     const installed = await installPWA()
@@ -26,6 +27,17 @@ export default function CashflowApp() {
       console.log("PWA instalada exitosamente")
     }
   }
+
+  // Detectar scroll para reducir tamaño del footer
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || window.pageYOffset
+      setIsScrolling(scrollY > 50)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Mostrar loading mientras se verifica la autenticación
   if (loading) {
@@ -59,9 +71,9 @@ export default function CashflowApp() {
         </main>
 
         {/* Bottom Navigation - Modern Glass Design */}
-        <nav className="glass-nav sticky bottom-0 z-40">
+        <nav className={`glass-nav fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${isScrolling ? 'scale-90' : ''}`}>
           <div className="container max-w-4xl mx-auto px-4">
-            <div className="grid grid-cols-3 gap-2 py-3">
+            <div className={`grid grid-cols-3 gap-2 transition-all duration-300 ${isScrolling ? 'py-2' : 'py-3'}`}>
               <button
                 onClick={() => setActiveTab("closure")}
                 className={`flex flex-col items-center gap-1 py-3 px-2 rounded-2xl smooth-transition ${
@@ -70,8 +82,8 @@ export default function CashflowApp() {
                     : "text-muted-foreground hover:text-foreground hover:bg-white/50 scale-hover"
                 }`}
               >
-                <DollarSign className="h-6 w-6" />
-                <span className="text-xs font-semibold">Cierre</span>
+                <DollarSign className={`transition-all duration-300 ${isScrolling ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                <span className={`font-semibold transition-all duration-300 ${isScrolling ? 'text-[10px]' : 'text-xs'}`}>Cierre</span>
               </button>
 
               <button
@@ -82,8 +94,8 @@ export default function CashflowApp() {
                     : "text-muted-foreground hover:text-foreground hover:bg-white/50 scale-hover"
                 }`}
               >
-                <History className="h-6 w-6" />
-                <span className="text-xs font-semibold">Historial</span>
+                <History className={`transition-all duration-300 ${isScrolling ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                <span className={`font-semibold transition-all duration-300 ${isScrolling ? 'text-[10px]' : 'text-xs'}`}>Historial</span>
               </button>
 
               <button
@@ -94,8 +106,8 @@ export default function CashflowApp() {
                     : "text-muted-foreground hover:text-foreground hover:bg-white/50 scale-hover"
                 }`}
               >
-                <Settings className="h-6 w-6" />
-                <span className="text-xs font-semibold">Config.</span>
+                <Settings className={`transition-all duration-300 ${isScrolling ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                <span className={`font-semibold transition-all duration-300 ${isScrolling ? 'text-[10px]' : 'text-xs'}`}>Config.</span>
               </button>
             </div>
           </div>
